@@ -1,0 +1,105 @@
+# Version of the Compose file format
+# Version 3 is the most current and recommended one
+version: "3"
+
+# Top building block that defines
+# All containers used for this service
+services:
+
+  # Container 1
+  # https://hub.docker.com/_/mysql
+  db:
+    # Image name (optinally version)
+    # https://docs.docker.com/compose/compose-file/#image
+    image: mysql:5.7
+    # Define restart policy
+    # https://docs.docker.com/compose/compose-file/#restart
+    restart: always
+    # Volumes definition
+    # Named volume, allows persisted data but without caring where locally it is stored
+    # https://nickjanetakis.com/blog/docker-tip-28-named-volumes-vs-path-based-volumes
+    volumes:
+      - db_data:/var/lib/mysql
+    # Add environment variables
+    # https://docs.docker.com/compose/compose-file/#environment
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    # List of networks to join
+    networks:
+      - wp
+
+  # Container 2
+  # https://hub.docker.com/_/wordpress
+  wordpress:
+    # List of dependencies
+    depends_on:
+      - db
+    # Image name (optinally version)
+    # https://docs.docker.com/compose/compose-file/#image
+    # Feel free to add a version of WordPress
+    # I.e. wordpress:5.2.0
+    #image: wordpress
+    build:
+      context: ''
+    # Define restart policy
+    # https://docs.docker.com/compose/compose-file/#restart
+    restart: always
+    # Volumes definition
+    # https://docs.docker.com/compose/compose-file/#volumes
+    # Maps your local folder, to path in a container
+    # Useful for file edits
+    # I like to map only wp-content
+    # We should not care about WP core files
+    volumes: ["./:/var/www/html/wp-content"]
+    # Add environment variables
+    # https://docs.docker.com/compose/compose-file/#environment
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DEBUG: 1
+    # Ports mapping
+    ports:
+      - 80:80
+      - 443:443
+    # List of networks to join
+    networks:
+      - wp
+
+  # Container 3
+  # https://hub.docker.com/r/phpmyadmin/phpmyadmin
+  # This one is optional
+  phpmyadmin:
+    # List of dependencies
+    depends_on:
+      - db
+    # Image name (optinally version)
+    # https://docs.docker.com/compose/compose-file/#image
+    image: phpmyadmin/phpmyadmin
+    # Define restart policy
+    # https://docs.docker.com/compose/compose-file/#restart
+    restart: always
+    # Ports mapping
+    ports:
+      - 8080:80
+    # Add environment variables
+    # https://docs.docker.com/compose/compose-file/#environment
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: password
+    # List of networks to join
+    networks:
+      - wp
+
+# Top building block that defines
+# All networks used for this service
+networks:
+  wp:
+
+# Top building block that defines
+# All volumes used for this service
+volumes:
+  db_data:
