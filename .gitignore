@@ -4,3 +4,5 @@ themes/*
 plugins/*
 index.php
 upgrade/*
+
+!plugins/flowy-paywall
