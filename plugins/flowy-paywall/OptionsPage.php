@@ -16,11 +16,13 @@ class OptionsPage {
 
     function registerSettings(){
         add_option( 'flowy_paywall_api_url', '');
+        add_option( 'flowy_paywall_login_url', '');
         add_option( 'flowy_paywall_client_id', '');
         add_option( 'flowy_paywall_client_secret', '');
         add_option( 'flowy_paywall_subscription_name', '');
 
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_api_url', 'flowy_paywall_callback' );
+        register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_login_url', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_client_id', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_client_secret', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_subscription_name', 'flowy_paywall_subscription_name' );
@@ -39,6 +41,10 @@ class OptionsPage {
             <tr valign="top">
                 <th scope="row"><label for="flowy_paywall_api_url">API Url</label></th>
                 <td><input type="text" id="flowy_paywall_api_url" name="flowy_paywall_api_url" value="<?php echo get_option('flowy_paywall_api_url'); ?>" /></td>
+            </tr>
+            <tr valign="top">
+                <th scope="row"><label for="flowy_paywall_api_url">Login Url</label></th>
+                <td><input type="text" id="flowy_paywall_api_url" name="flowy_paywall_login_url" value="<?php echo get_option('flowy_paywall_login_url'); ?>" /></td>
             </tr>
             <tr valign="top">
                 <th scope="row"><label for="flowy_paywall_client_id">Client ID</label></th>

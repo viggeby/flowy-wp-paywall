@@ -9,7 +9,7 @@ class Api {
     }
 
     function listSubscriptions(){       
-       return $this->queryApi( 'capi/v1/subscription/' );
+       return $this->queryApi( '/v1/subscription/' );
     }
 
     function queryApi($uri){

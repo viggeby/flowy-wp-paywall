@@ -5,7 +5,6 @@ class Flowy {
     var $settings;
     var $options_page;
 
-
     static $instance;
     static function instance(){
         if ( empty( $instance ) ) {
@@ -22,8 +21,31 @@ class Flowy {
 
     function setup(){
         $this->options_page->setup();
+        $this->addFrontEndScripts();
+
+        add_action( 'init', function(){
+            Auth::initCallbackListener();
+        
+            if(isset($_GET['flowy_paywall_login'])){
+                flowy_redirect_to_login();
+            }
+        });
 
         add_action( 'flowy_paywall_after_auth', [ $this, 'checkSubscriptionWithApi' ] , 10 );
+    }
+
+    function addFrontEndScripts(){
+
+        add_action( 'wp_enqueue_scripts', function(){
+            wp_enqueue_script( 'flowy-paywall-auth-check', plugin_dir_url( __FILE__ ) . '/js/auth_check.js', [ 'jquery' ], '1.0', TRUE );
+            wp_localize_script( 'flowy-paywall-auth-check', "flowy_paywall", [
+                "login_url"     =>  $this->settings->getSetting( 'login_url' ) ,
+                "return_url"    =>  Auth::getRedirectUrl(),
+                "auth_url"      =>  Auth::getAuthorizeUrl(),
+                "client_id"     => $this->settings->getSetting( 'client_id' )               
+            ]);
+        });
+
     }
 
     function checkSubscriptionWithApi($auth){
@@ -43,7 +65,9 @@ class Flowy {
         $this->setCookie( $is_subscriber );
     }
 
-
+    /**
+     * Returns true if subscriber, false if not and null if unknown
+     */
     static function isSubscriber(){
 
         if ( !isset($_COOKIE['flowy_paywall']) ){
@@ -51,14 +75,14 @@ class Flowy {
         }
 
         $uniqid = $_COOKIE['flowy_paywall'];
-
         $transient = get_transient( "flowy_paywall_{$uniqid}" );
 
         if ( !empty( $transient )){
             return $transient;
         }
 
-        return false;
+        // Default to null if unknown
+        return null;
     }
 
     function setCookie( $is_subscriber ){

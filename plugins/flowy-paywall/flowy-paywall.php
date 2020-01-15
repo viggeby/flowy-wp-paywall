@@ -15,13 +15,6 @@ require_once( 'Flowy.php' );
 require_once( 'Settings.php' );
 require_once( 'OptionsPage.php' );
 
-add_action( 'init', function(){
-    \Flowy\Auth::initCallbackListener();
-
-    if(isset($_GET['login'])){
-        flowy_redirect_to_login();
-    }
-});
 
 Flowy\Flowy::instance()->setup();
 
@@ -34,4 +27,8 @@ function flowy_is_subscriber(){
 
 function flowy_redirect_to_login(){
     \Flowy\Auth::authorize();
+}
+
+function flowy_get_login_url(){
+    \Flowy\Auth::getRedirectUrl();
 }
