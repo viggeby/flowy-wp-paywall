@@ -20,12 +20,14 @@ class OptionsPage {
         add_option( 'flowy_paywall_client_id', '');
         add_option( 'flowy_paywall_client_secret', '');
         add_option( 'flowy_paywall_subscription_name', '');
+        add_option( 'flowy_paywall_buy_url', '');
 
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_api_url', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_login_url', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_client_id', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_client_secret', 'flowy_paywall_callback' );
-        register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_subscription_name', 'flowy_paywall_subscription_name' );
+        register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_subscription_name', 'flowy_paywall_callback' );
+        register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_buy_url', 'flowy_paywall_callback' );
     }
 
     function optionsPage()
@@ -57,6 +59,10 @@ class OptionsPage {
             <tr valign="top">
                 <th scope="row"><label for="flowy_paywall_subscription_name">Subscription Name</label></th>
                 <td><input type="text" id="flowy_paywall_subscription_name" name="flowy_paywall_subscription_name" value="<?php echo get_option('flowy_paywall_subscription_name'); ?>" /></td>
+            </tr>
+            <tr valign="top">
+                <th scope="row"><label for="flowy_paywall_buy_url">Buy Subscription Url</label></th>
+                <td><input type="text" id="flowy_paywall_buy_url" placeholder="" name="flowy_paywall_buy_url" value="<?php echo get_option('flowy_paywall_buy_url'); ?>" /></td>
             </tr>
         </table>
         <?php  submit_button(); ?>

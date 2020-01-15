@@ -14,7 +14,7 @@ class Api {
 
     function queryApi($uri){
 
-        $api_url = rtrim(Flowy::instance()->settings->getSetting( 'api_url' ), '/'); 
+        $api_url = rtrim(Flowy::instance()->getSetting( 'api_url' ), '/'); 
         $url = "${api_url}/${uri}";
         
         $opts = array('http' =>

@@ -25,8 +25,8 @@ class Auth {
     }
 
     static function getAuthorizeUrl(){
-        $client_id = Flowy::instance()->settings->getSetting( 'client_id' );
-        $api_url = rtrim(Flowy::instance()->settings->getSetting( 'login_url' ), '/');
+        $client_id = Flowy::instance()->getSetting( 'client_id' );
+        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
         $redirect_uri = Auth::getRedirectUrl();
         return "${api_url}/oauth/authorize?response_type=code&client_id=${client_id}&redirect_uri=${redirect_uri}";
     }
@@ -40,9 +40,9 @@ class Auth {
     
     static function doTokenLogin($code){
 
-        $api_url = rtrim(Flowy::instance()->settings->getSetting( 'login_url' ), '/');
-        $client_id = Flowy::instance()->settings->getSetting( 'client_id' );
-        $client_secret = Flowy::instance()->settings->getSetting( 'client_secret' );
+        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
+        $client_id = Flowy::instance()->getSetting( 'client_id' );
+        $client_secret = Flowy::instance()->getSetting( 'client_secret' );
         $redirect_uri = Auth::getRedirectUrl();
 
         $ch = curl_init();

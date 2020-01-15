@@ -12,8 +12,8 @@
 require_once( 'Api.php' );
 require_once( 'Auth.php' );
 require_once( 'Flowy.php' );
-require_once( 'Settings.php' );
 require_once( 'OptionsPage.php' );
+require_once( 'Shortcodes.php' );
 
 
 Flowy\Flowy::instance()->setup();
@@ -31,4 +31,8 @@ function flowy_redirect_to_login(){
 
 function flowy_get_login_url(){
     \Flowy\Auth::getRedirectUrl();
+}
+
+function flowy_logout(){
+    \Flowy\Flowy::logout();
 }
