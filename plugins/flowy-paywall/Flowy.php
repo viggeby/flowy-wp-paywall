@@ -46,7 +46,7 @@ class Flowy {
                 "login_url"     =>  $this->getSetting( 'login_url' ) ,
                 "return_url"    =>  Auth::getRedirectUrl(),
                 "auth_url"      =>  Auth::getAuthorizeUrl(),
-                "client_id"     => $this->getSetting( 'client_id' )               
+                "client_id"     =>  $this->getSetting( 'client_id' )               
             ]);
         });
 
