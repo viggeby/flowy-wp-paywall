@@ -21,7 +21,9 @@ class Auth {
 
 
     static function getRedirectUrl(){
-        return get_site_url() . "?flowy_paywall_callback";
+        global $wp;
+        $current_url = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        return add_query_arg( 'flowy_paywall_callback', '',  $current_url );
     }
 
     static function getAuthorizeUrl(){
