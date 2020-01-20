@@ -23,6 +23,10 @@ class Auth {
     static function getRedirectUrl(){
         global $wp;
         $current_url = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        
+        // Remove logout url to prevent logout when redirected back from login
+        $current_url = remove_query_arg( 'flowy_paywall_logout',  $current_url );
+
         return add_query_arg( 'flowy_paywall_callback', '',  $current_url );
     }
 

@@ -8,21 +8,35 @@ class Api {
         $this->access_token = $access_token;
     }
 
-    function listSubscriptions(){       
-       return $this->queryApi( '/v1/subscription/' );
-    }
+    function checkAccess( $product, $category_type ){       
 
-    function queryApi($uri){
+        $data = [
+            'product'       => $product,
+            'categoryType'  => $category_type
+        ];
+        return $this->queryApi( 'v1/customer/access', 'POST', $data );
+     }
+
+    function queryApi( $uri,  $method = 'GET', $data = []){
 
         $api_url = rtrim(Flowy::instance()->getSetting( 'api_url' ), '/'); 
         $url = "${api_url}/${uri}";
         
         $opts = array('http' =>
             array(
-                'method'  => 'GET',
-                'header'  => "Content-Type: application/x-www-form-urlencoded\r\n" . "Authorization: Bearer {$this->access_token}\r\n" ."Accept: application/json\r\n"
+                'method'  => $method,
+                'header'  => "Authorization: Bearer {$this->access_token}\r\n" ."Accept: application/json\r\n"
             )
         );
+
+        if ( 'POST' == $method ) {
+            
+            $post_data = \json_encode( $data );
+            $opts['http']['content'] = $post_data;
+            $opts['http']['header'] .= "Content-Type: application/json\r\n" . "Content-Length: " . strlen( $post_data ) . "\r\n";
+
+
+        }
         
         $context  = stream_context_create($opts);        
         $result = file_get_contents($url, false, $context);

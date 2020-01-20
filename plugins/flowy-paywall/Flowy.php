@@ -51,24 +51,21 @@ class Flowy {
         });
 
     }
-
+ 
     function getSetting($name){
         return get_option( "flowy_paywall_${name}" );
     }
 
-    function checkSubscriptionWithApi($auth){
+    function checkSubscriptionWithApi($auth){        
 
         // Ask api for list of subscriptions
+        $api_product = $this->getSetting( 'api_product' );
+        $api_category_type = Flowy::instance()->getSetting( 'api_category_type' );
         $api = new Api($auth->access_token);
-        $result = $api->listSubscriptions();
+        $result = $api->checkAccess( $api_product, $api_category_type );
 
-        // Extract subscription names
-        $subscription_names = array_map( function($item){
-            return $item[ 'product' ];
-        }, $result[ 'subscriptions' ] );
-
-        // Check if names contains subscription name in settings to match
-        $is_subscriber = \in_array( $this->getSetting( 'subscription_name' ), $subscription_names);
+        // Check if user has access
+        $is_subscriber = filter_var( $result['access'], FILTER_VALIDATE_BOOLEAN );
 
         $this->doCookieAuth( $is_subscriber );
     }
