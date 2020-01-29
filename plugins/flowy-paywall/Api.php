@@ -40,7 +40,6 @@ class Api {
         
         $context  = stream_context_create($opts);        
         $result = file_get_contents($url, false, $context);
-        
         return json_decode( $result, TRUE );
     }
 }

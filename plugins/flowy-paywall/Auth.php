@@ -16,6 +16,17 @@ class Auth {
             self::doTokenLogin($code);
             
         }
+
+        if ( isset($_GET['flowy_paywall_ajax_auth_result']) ){
+
+            $result = $_GET['flowy_paywall_ajax_auth_result'];
+            echo "window.flowy_paywall_ajax_auth_result = ${result};
+                (function($){ 
+                    $(window).trigger('flowy_paywall_ajax_auth_result', window.flowy_paywall_ajax_auth_result);
+                })(jQuery);";
+            exit;
+
+        }
         
     }
 
@@ -40,6 +51,15 @@ class Auth {
 
     static function authorize(){       
         wp_redirect(Auth::getAuthorizeUrl());
+        exit;
+    }
+
+    static function logout(){
+        $client_id = Flowy::instance()->getSetting( 'client_id' );
+        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
+        $redirect_uri = Auth::getRedirectUrl();
+        $logout_url = "${api_url}/logout?clientId={$client_id}&returnUrl=${redirect_uri}&errorUrl=${redirect_uri}";
+        wp_redirect($logout_url);
         exit;
     }
 

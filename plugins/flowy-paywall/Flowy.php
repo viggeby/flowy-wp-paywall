@@ -36,19 +36,34 @@ class Flowy {
         });
 
         add_action( 'flowy_paywall_after_auth', [ $this, 'checkSubscriptionWithApi' ] , 10 );
+
+        
+        // Notify that the user us not logged in with Flowy and no need to hammer the API
+        if ( isset($_GET['flowy_paywall_notify_login_status']) ){
+            $is_logged_in = ($_GET['flowy_paywall_notify_login_status'] == true);
+            Flowy::setThirdPartyLoginStatus( $is_logged_in );
+        }
     }
 
     function addFrontEndScripts(){
 
-        add_action( 'wp_enqueue_scripts', function(){
-            wp_enqueue_script( 'flowy-paywall-auth-check', plugin_dir_url( __FILE__ ) . '/js/auth_check.js', [ 'jquery' ], '1.0', TRUE );
-            wp_localize_script( 'flowy-paywall-auth-check', "flowy_paywall", [
-                "login_url"     =>  $this->getSetting( 'login_url' ) ,
-                "return_url"    =>  Auth::getRedirectUrl(),
-                "auth_url"      =>  Auth::getAuthorizeUrl(),
-                "client_id"     =>  $this->getSetting( 'client_id' )               
-            ]);
-        });
+
+        // Add front-end logic if not logged in
+        if ( Flowy::getThirdPartyLoginStatus() == null) {
+
+            add_action( 'wp_enqueue_scripts', function(){
+
+                $api_login_check_url = rtrim( $this->getSetting( 'login_url' ), '/') . '/loginCheck?clientId=' . $this->getSetting( 'client_id' ) . '&returnUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=true&errorUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=false';
+
+                wp_enqueue_script( 'flowy-paywall-api-login-check', $api_login_check_url, [], '1.0', TRUE );
+
+                wp_enqueue_script( 'flowy-paywall-auth-check', plugin_dir_url( __FILE__ ) . '/js/auth_check.js', [ 'jquery', 'flowy-paywall-api-login-check' ], '1.0', TRUE );
+                wp_localize_script( 'flowy-paywall-auth-check', "flowy_paywall", [
+                    "login_url"                 =>  Auth::getAuthorizeUrl(),
+                    "login_status_is_unknown"   =>  (Flowy::isLoggedIn() == null ? 'true' : 'false')
+                ]);
+            });
+        }
 
     }
  
@@ -67,7 +82,7 @@ class Flowy {
         // Check if user has access
         $is_subscriber = filter_var( $result['access'], FILTER_VALIDATE_BOOLEAN );
 
-        $this->doCookieAuth( $is_subscriber );
+        Flowy::doCookieAuth( $is_subscriber );
     }
 
     
@@ -94,7 +109,7 @@ class Flowy {
     /**
      * True/False if user is singed in
      */
-    static function isSignedIn(){
+    static function isLoggedIn(){
 
         // If subscriber info is not true/false but null the user is not signed in        
         return !is_null(Flowy::isSubscriber());
@@ -112,10 +127,10 @@ class Flowy {
     }
 
 
-    function doCookieAuth( $is_subscriber ){
+    static function doCookieAuth( $is_subscriber, $uniqid = null){
 
         // Create a server side transiet and match with cookie
-        $uniqid = \uniqid();
+        $uniqid = $uniqid ?? \uniqid();
         $expiration = HOUR_IN_SECONDS*24;
 
         \setcookie( 'flowy_paywall', $uniqid, time()+$expiration );
@@ -124,6 +139,29 @@ class Flowy {
         // Make cookie readable during this request to avoid reload to make it available
         $_COOKIE['flowy_paywall'] = $uniqid;
 
+        Flowy::setThirdPartyLoginStatus(true);
+
+    }
+
+    static function setThirdPartyLoginStatus( $is_logged_in){
+
+        // Create a server side transiet and match with cookie
+        $expiration = HOUR_IN_SECONDS*24;
+
+        \setcookie( 'flowy_paywall_third_party_login', $is_logged_in, time()+$expiration);
+
+        // Make cookie readable during this request to avoid reload to make it available
+        $_COOKIE['flowy_paywall_third_party_login'] = $is_logged_in;
+
+    }
+
+    static function getThirdPartyLoginStatus(){
+
+        if ( !isset($_COOKIE['flowy_paywall_third_party_login']) ){
+            return null;
+        }
+
+        return $_COOKIE['flowy_paywall_third_party_login'];
     }
 
 
@@ -133,11 +171,14 @@ class Flowy {
 
         if ( !empty($uniqid) ){
              
-            // Remove cookie by expiring it
-            setcookie( 'flowy_paywall', time() - 3600 );
+            // Set cookie to false so we know status but return false
+            Flowy::doCookieAuth( false, $uniqid );
 
-            // Delete transient
-            delete_transient( "flowy_paywall_{$uniqid}" );
+            // Send logout request to external provider
+            Auth::logout();
+
+            // Update third party status hint
+            Flowy::setThirdPartyLoginStatus(false);
 
         }
 

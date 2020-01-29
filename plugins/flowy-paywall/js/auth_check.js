@@ -8,22 +8,31 @@
 
         init: function(){
 
-            this.checkLogin();
+            // Only check if user is unauthenticated
+            if ( flowy_paywall.login_status_is_unknown == 'true') {
+
+                //  Check if a result is present or if we need to wait for result
+                if (window.flowy_paywall_ajax_auth_result != undefined){
+                    this.doLoginRedirectCheck(window.flowy_paywall_ajax_auth_result);
+                }else{
+                    $(window).on('window.flowy_paywall_ajax_auth_result', this.doLoginRedirectCheck);
+                }
+            }
+
+            
+
         },
 
-        checkLogin: function(){
-            
-            var loginUrl =  flowy_paywall.login_url + '/loginCheck?clientId=' + flowy_paywall.client_id + '&returnUrl=' + encodeURIComponent(flowy_paywall.return_url) + '&errorUrl=' + encodeURIComponent(flowy_paywall.return_url);
-            
-            $.ajax({
-                url: loginUrl,
-                context: document.body
-            }).done(function(result) {
+        doLoginRedirectCheck: function(authResult){
 
-    console.log(result);
+            // Set login hint to avoid multiple calls to third party
+            $.ajax('?flowy_paywall_notify_login_status=' + authResult);
 
-                $( this ).addClass( "done" );
-            });
+            // Redirect if user is logged in with 3rd party
+            if (authResult) {
+                window.location.replace(flowy_paywall.login_url);
+            }
+          
         }
 
     });
