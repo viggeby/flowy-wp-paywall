@@ -6,3 +6,6 @@ index.php
 upgrade/*
 
 !plugins/flowy-paywall
+
+
+.DS_Store

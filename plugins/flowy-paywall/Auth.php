@@ -41,6 +41,18 @@ class Auth {
         return add_query_arg( 'flowy_paywall_callback', '',  $current_url );
     }
 
+    static function stripCallbackUrl(){
+        global $wp;
+        $current_url = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        
+        // Remove logout url to prevent logout when redirected back from login
+        $current_url = remove_query_arg( 'flowy_paywall_callback',  $current_url );
+        $current_url = remove_query_arg( 'code',  $current_url );
+
+        wp_redirect( $current_url );
+        exit;
+    }
+
     static function getAuthorizeUrl(){
         $client_id = Flowy::instance()->getSetting( 'client_id' );
         $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
@@ -67,8 +79,8 @@ class Auth {
     static function doTokenLogin($code){
 
         $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
-        $client_id = Flowy::instance()->getSetting( 'client_id' );
-        $client_secret = Flowy::instance()->getSetting( 'client_secret' );
+        $client_id = urlencode( Flowy::instance()->getSetting( 'client_id' ) );
+        $client_secret = urlencode( Flowy::instance()->getSetting( 'client_secret' ) );
         $redirect_uri = Auth::getRedirectUrl();
 
         $ch = curl_init();
@@ -88,7 +100,6 @@ class Auth {
             echo 'Error:' . curl_error($ch);
         }
         curl_close($ch);
-
         do_action( 'flowy_paywall_after_auth', json_decode($result) );
         
     }

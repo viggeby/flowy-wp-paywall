@@ -36,7 +36,8 @@ class Flowy {
         });
 
         add_action( 'flowy_paywall_after_auth', [ $this, 'checkSubscriptionWithApi' ] , 10 );
-
+        add_action( 'flowy_paywall_after_auth', '\Flowy\Auth::stripCallbackUrl', 20 );
+        
         
         // Notify that the user us not logged in with Flowy and no need to hammer the API
         if ( isset($_GET['flowy_paywall_notify_login_status']) ){
@@ -71,8 +72,8 @@ class Flowy {
         return get_option( "flowy_paywall_${name}" );
     }
 
-    function checkSubscriptionWithApi($auth){        
-
+    function checkSubscriptionWithApi($auth){      
+        
         // Ask api for list of subscriptions
         $api_product = $this->getSetting( 'api_product' );
         $api_category_type = Flowy::instance()->getSetting( 'api_category_type' );
@@ -83,6 +84,8 @@ class Flowy {
         $is_subscriber = filter_var( $result['access'], FILTER_VALIDATE_BOOLEAN );
 
         Flowy::doCookieAuth( $is_subscriber );
+
+        
     }
 
     
@@ -133,7 +136,7 @@ class Flowy {
         $uniqid = $uniqid ?? \uniqid();
         $expiration = HOUR_IN_SECONDS*24;
 
-        \setcookie( 'flowy_paywall', $uniqid, time()+$expiration );
+        \setcookie( 'flowy_paywall', $uniqid, time()+$expiration, '/' );
         \set_transient( "flowy_paywall_${uniqid}", $is_subscriber, $expiration );
 
         // Make cookie readable during this request to avoid reload to make it available
@@ -148,7 +151,7 @@ class Flowy {
         // Create a server side transiet and match with cookie
         $expiration = HOUR_IN_SECONDS*24;
 
-        \setcookie( 'flowy_paywall_third_party_login', $is_logged_in, time()+$expiration);
+        \setcookie( 'flowy_paywall_third_party_login', $is_logged_in, time()+$expiration, '/' );
 
         // Make cookie readable during this request to avoid reload to make it available
         $_COOKIE['flowy_paywall_third_party_login'] = $is_logged_in;
