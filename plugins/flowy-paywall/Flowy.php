@@ -177,11 +177,11 @@ class Flowy {
             // Set cookie to false so we know status but return false
             Flowy::doCookieAuth( false, $uniqid );
 
-            // Send logout request to external provider
-            Auth::logout();
-
             // Update third party status hint
             Flowy::setThirdPartyLoginStatus(false);
+
+            // Send logout request to external provider
+            Auth::logout();            
 
         }
 

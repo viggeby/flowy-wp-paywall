@@ -86,7 +86,10 @@ class Shortcodes {
             'returnto' => '',
         ), $atts );
 
-        $html = "<a href=\"?flowy_paywall_logout\">${content}</a>";
+        $logout_url = \Flowy\Auth::getCurrentUrl();
+        $logout_url = add_query_arg( 'flowy_paywall_logout',  $logout_url );
+
+        $html = "<a href=\"{$logout_url}\">${content}</a>";
 
         return do_shortcode( $html );
     }

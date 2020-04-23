@@ -17,6 +17,11 @@ class Auth {
             
         }
 
+        if ( isset( $_GET['flow_paywall_logout_callback'] ) ){
+            // Remove logout callback to prevent issues if user try to login again without refreshing the page
+            self::stripCallbackUrl();
+        }
+
         if ( isset($_GET['flowy_paywall_ajax_auth_result']) ){
 
             $result = $_GET['flowy_paywall_ajax_auth_result'];
@@ -30,23 +35,29 @@ class Auth {
         
     }
 
+    static function getCurrentUrl(){
+        return  (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+    }
+
 
     static function getRedirectUrl(){
         global $wp;
-        $current_url = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        $current_url = self::getCurrentUrl();
         
         // Remove logout url to prevent logout when redirected back from login
         $current_url = remove_query_arg( 'flowy_paywall_logout',  $current_url );
+        $current_url = remove_query_arg( 'code',  $current_url );
 
         return add_query_arg( 'flowy_paywall_callback', '',  $current_url );
     }
 
     static function stripCallbackUrl(){
         global $wp;
-        $current_url = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        $current_url = self::getCurrentUrl();
         
         // Remove logout url to prevent logout when redirected back from login
         $current_url = remove_query_arg( 'flowy_paywall_callback',  $current_url );
+        $current_url = remove_query_arg( 'flow_paywall_logout_callback',  $current_url );
         $current_url = remove_query_arg( 'code',  $current_url );
 
         wp_redirect( $current_url );
@@ -54,9 +65,9 @@ class Auth {
     }
 
     static function getAuthorizeUrl(){
-        $client_id = Flowy::instance()->getSetting( 'client_id' );
+        $client_id = urlencode(Flowy::instance()->getSetting( 'client_id' ));
         $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
-        $redirect_uri = Auth::getRedirectUrl();
+        $redirect_uri = urlencode(Auth::getRedirectUrl());
         return "${api_url}/oauth/authorize?response_type=code&client_id=${client_id}&redirect_uri=${redirect_uri}";
     }
     
@@ -67,9 +78,14 @@ class Auth {
     }
 
     static function logout(){
-        $client_id = Flowy::instance()->getSetting( 'client_id' );
+        $client_id = urlencode(Flowy::instance()->getSetting( 'client_id' ));
         $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
-        $redirect_uri = Auth::getRedirectUrl();
+        
+        $redirect_uri = (Auth::getCurrentUrl());        
+        $redirect_uri = remove_query_arg( 'flowy_paywall_logout',  $redirect_uri );
+        $redirect_uri = add_query_arg( 'flow_paywall_logout_callback', '',  $redirect_uri );
+        $redirect_uri = urlencode($redirect_uri);
+
         $logout_url = "${api_url}/logout?clientId={$client_id}&returnUrl=${redirect_uri}&errorUrl=${redirect_uri}";
         wp_redirect($logout_url);
         exit;
@@ -81,7 +97,7 @@ class Auth {
         $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
         $client_id = urlencode( Flowy::instance()->getSetting( 'client_id' ) );
         $client_secret = urlencode( Flowy::instance()->getSetting( 'client_secret' ) );
-        $redirect_uri = Auth::getRedirectUrl();
+        $redirect_uri = urlencode(Auth::getRedirectUrl());
 
         $ch = curl_init();
 
