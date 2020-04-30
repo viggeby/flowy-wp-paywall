@@ -46,6 +46,33 @@ The shortcodes wraps content and are used by placing your content between an ope
     This content will be wrapped in `<a></a>` pointing to the URL for logout with redirect back to the current page.
     [/flowy_logout_link]
 
+### flowy_connect_account_link
+
+    [flowy_connect_account_link]
+    This content will be wrapped in `<a></a>` pointing to the URL for connecting a logged in user with their account if subscriptions doesn't match.
+    [/flowy_connect_account_link]
+
+### flowy_logged_in
+
+    [flowy_non_subscriber]
+    This content will only be shown users that are logged in, regardless if they have access or not. Usually used with `[flowy_connect_account_link]`
+    [/flowy_non_subscriber]
+
+
+## Examples
+
+Show a message for logged in users without a subscription but with an existing account:
+
+    [flowy_logged_in][flowy_non_subscriber]
+    <p>You are logged in but do not seem to have a subscription linked to your account</p>
+
+    <p>[flowy_connect_account_link]Click here to connect your subscription to your account.[/flowy_connect_account_link]</p>
+
+    <p>[flowy_buy_link]Click here to subscribe[/flowy_buy_link]</p>
+
+    [/flowy_non_subscriber][/flowy_logged_in]
+
+
 ## Technical
 
 This plugin uses the namespace `Flowy` and the primary class is named `Flowy` with most static methods but also a default instance accessible by calling `\Flowy\Flowy::instance()`.
