@@ -63,12 +63,23 @@ class Auth {
         wp_redirect( $current_url );
         exit;
     }
-
+    
     static function getAuthorizeUrl(){
         $client_id = urlencode(Flowy::instance()->getSetting( 'client_id' ));
         $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
         $redirect_uri = urlencode(Auth::getRedirectUrl());
         return "${api_url}/oauth/authorize?response_type=code&client_id=${client_id}&redirect_uri=${redirect_uri}";
+    }
+
+    
+    static function getConnectAccountUrl(){
+       
+        // If successful, redirect to login endpoint to refresh login and subscription access
+        $client_id = urlencode(Flowy::instance()->getSetting( 'client_id' ));
+        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
+        $error_url = urlencode(Auth::getCurrentUrl());
+        $success_url = urlencode(Auth::getAuthorizeUrl());
+        return "${api_url}/register?clientId=${client_id}&returnUrl=${success_url}&errorUrl=${error_url}";
     }
     
 

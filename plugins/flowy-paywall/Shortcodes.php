@@ -5,12 +5,14 @@ class Shortcodes {
 
     function register(){
 
-        add_shortcode('flowy_subscriber_only',  [$this, 'subscriberOnly'] );
-        add_shortcode('flowy_non_subscriber',   [$this, 'nonSubscriber'] );
-        add_shortcode('flowy_subscriber_name',  [$this, 'subscriberName']);
-        add_shortcode('flowy_buy_link',         [$this, 'buyLink']);
-        add_shortcode('flowy_login_link',       [$this, 'loginLink']);
-        add_shortcode('flowy_logout_link',      [$this, 'logoutLink']);
+        add_shortcode('flowy_subscriber_only',      [$this, 'subscriberOnly'] );
+        add_shortcode('flowy_non_subscriber',       [$this, 'nonSubscriber'] );
+        add_shortcode('flowy_logged_in',            [$this, 'loggedIn'] );
+        add_shortcode('flowy_subscriber_name',      [$this, 'subscriberName']);
+        add_shortcode('flowy_buy_link',             [$this, 'buyLink']);
+        add_shortcode('flowy_login_link',           [$this, 'loginLink']);
+        add_shortcode('flowy_connect_account_link', [$this, 'connectAccountLink']);
+        add_shortcode('flowy_logout_link',          [$this, 'logoutLink']);
 
     }
 
@@ -26,6 +28,14 @@ class Shortcodes {
     function nonSubscriber($atts, $content)
     {
         if ( !Flowy::instance()->isSubscriber() && !is_null( $content ) ) {
+            return do_shortcode($content);
+        }       
+        return '';
+    }
+
+    function loggedIn($atts, $content)
+    {
+        if ( Flowy::instance()->isLoggedIn() && !is_null( $content ) ) {
             return do_shortcode($content);
         }       
         return '';
@@ -73,6 +83,24 @@ class Shortcodes {
         // TODO: Implement returnto
         //$returnto = $a["returnto"];
         $login_url = \Flowy\Auth::getAuthorizeUrl();
+
+        $html = "<a href=\"${login_url}\">${content}</a>";
+
+        return do_shortcode( $html );
+    }
+
+    
+
+    function connectAccountLink($atts, $content = null, $tag='')
+    {
+
+        $a = shortcode_atts( array(
+            'returnto' => '',
+        ), $atts );
+
+        // TODO: Implement returnto
+        //$returnto = $a["returnto"];
+        $login_url = \Flowy\Auth::getConnectAccountUrl();
 
         $html = "<a href=\"${login_url}\">${content}</a>";
 

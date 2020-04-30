@@ -102,8 +102,8 @@ class Flowy {
 
        $transient = get_transient( "flowy_paywall_{$uniqid}" );
 
-        if ( !empty( $transient )){
-            return $transient;
+        if ( $transient  != false ){     
+            return $transient == "access" ? true : false;
         }
 
         return null;
@@ -115,7 +115,7 @@ class Flowy {
     static function isLoggedIn(){
 
         // If subscriber info is not true/false but null the user is not signed in        
-        return !is_null(Flowy::isSubscriber());
+        return Flowy::isSubscriber() !== null;
     }
 
     static function getCookie(){
@@ -136,8 +136,9 @@ class Flowy {
         $uniqid = $uniqid ?? \uniqid();
         $expiration = HOUR_IN_SECONDS*24;
 
+        // Transient must be a string, non-existing will be returned as false by wp.
         \setcookie( 'flowy_paywall', $uniqid, time()+$expiration, '/' );
-        \set_transient( "flowy_paywall_${uniqid}", $is_subscriber, $expiration );
+        \set_transient( "flowy_paywall_${uniqid}", $is_subscriber ? 'access' : 'noaccess', $expiration );
 
         // Make cookie readable during this request to avoid reload to make it available
         $_COOKIE['flowy_paywall'] = $uniqid;
