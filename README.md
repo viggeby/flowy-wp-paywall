@@ -54,9 +54,15 @@ The shortcodes wraps content and are used by placing your content between an ope
 
 ### flowy_logged_in
 
-    [flowy_non_subscriber]
+    [flowy_logged_in]
     This content will only be shown users that are logged in, regardless if they have access or not. Usually used with `[flowy_connect_account_link]`
-    [/flowy_non_subscriber]
+    [/flowy_logged_in]
+
+### flowy_logged_in
+
+    [flowy_not_logged_in]
+    This content will only be shown users that are NOT logged in.
+    [/flowy_not_logged_in]
 
 
 ## Examples
