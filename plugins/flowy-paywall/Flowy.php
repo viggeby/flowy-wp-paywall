@@ -3,7 +3,6 @@
 class Flowy {
 
     var $options_page;
-    var $shortcodes;
 
     static $instance;
     static function instance(){
@@ -15,12 +14,11 @@ class Flowy {
 
     function __construct(){
         $this->options_page = new OptionsPage();
-        $this->shortcodes = new Shortcodes();
     }
 
     function setup(){
         $this->options_page->setup();
-        $this->shortcodes->register();
+        Shortcodes::register();
         $this->addFrontEndScripts();
 
         add_action( 'init', function(){
@@ -175,11 +173,15 @@ class Flowy {
 
         if ( !empty($uniqid) ){
              
-            // Set cookie to false so we know status but return false
-            Flowy::doCookieAuth( false, $uniqid );
+            // Remove transient
+            if( isset($_COOKIE['flowy_paywall']) ){
+                \delete_transient( $_COOKIE['flowy_paywall'] );
+            }
 
-            // Update third party status hint
-            Flowy::setThirdPartyLoginStatus(false);
+            // Unset cooies
+            \setcookie( 'flowy_paywall', null, -1, '/' );
+            \setcookie( 'flowy_paywall_third_party_login', null, -1, '/' );
+           
 
             // Send logout request to external provider
             Auth::logout();            

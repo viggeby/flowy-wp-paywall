@@ -3,56 +3,65 @@
 class Shortcodes {
 
 
-    function register(){
+    static function register(){
 
-        add_shortcode('flowy_subscriber_only',      [$this, 'subscriberOnly'] );
-        add_shortcode('flowy_non_subscriber',       [$this, 'nonSubscriber'] );
-        add_shortcode('flowy_logged_in',            [$this, 'loggedIn'] );
-        add_shortcode('flowy_subscriber_name',      [$this, 'subscriberName']);
-        add_shortcode('flowy_buy_link',             [$this, 'buyLink']);
-        add_shortcode('flowy_login_link',           [$this, 'loginLink']);
-        add_shortcode('flowy_connect_account_link', [$this, 'connectAccountLink']);
-        add_shortcode('flowy_logout_link',          [$this, 'logoutLink']);
+        add_shortcode('flowy_subscriber_only',      '\Flowy\Shortcodes::subscriberOnly');
+        add_shortcode('flowy_non_subscriber',       '\Flowy\Shortcodes::nonSubscriber');
+        add_shortcode('flowy_logged_in',            '\Flowy\Shortcodes::loggedIn');
+        add_shortcode('flowy_not_logged_in',        '\Flowy\Shortcodes::notLoggedIn');
+        add_shortcode('flowy_subscriber_name',      '\Flowy\Shortcodes::subscriberName');
+        add_shortcode('flowy_buy_link',             '\Flowy\Shortcodes::buyLink');
+        add_shortcode('flowy_login_link',           '\Flowy\Shortcodes::loginLink');
+        add_shortcode('flowy_connect_account_link', '\Flowy\Shortcodes::connectAccountLink');
+        add_shortcode('flowy_logout_link',          '\Flowy\Shortcodes::logoutLink');
 
     }
 
-    function subscriberOnly($atts, $content = null)
+    static function subscriberOnly($atts, $content = null)
     {
-        if ( Flowy::instance()->isSubscriber() && !is_null( $content ) )
+        if ( Flowy::isSubscriber() && !is_null( $content ) )
         {
             return do_shortcode($content);
         }
         return '';
     }
 
-    function nonSubscriber($atts, $content)
+    static function nonSubscriber($atts, $content)
     {
-        if ( !Flowy::instance()->isSubscriber() && !is_null( $content ) ) {
+        if ( !Flowy::isSubscriber() && !is_null( $content ) ) {
             return do_shortcode($content);
         }       
         return '';
     }
 
-    function loggedIn($atts, $content)
+    static function loggedIn($atts, $content)
     {
-        if ( Flowy::instance()->isLoggedIn() && !is_null( $content ) ) {
+        if ( Flowy::isLoggedIn() && !is_null( $content ) ) {
             return do_shortcode($content);
         }       
         return '';
     }
 
-    function subscriberName($atts, $content)
+    static function notLoggedIn($atts, $content)
+    {
+        if ( !Flowy::isLoggedIn() && !is_null( $content ) ) {
+            return do_shortcode($content);
+        }       
+        return '';
+    }
+
+    static function subscriberName($atts, $content)
     {
 
         // TODO: Check previous implementation, seems to be broken from before.
 
-        if ( !Flowy::instance()->isSubscriber() && !is_null( $content ) ) {
+        if ( !Flowy::isSubscriber() && !is_null( $content ) ) {
             return do_shortcode($content);
         }       
         return '';
     }
 
-    function buyLink($atts, $content = null, $tag='')
+    static function buyLink($atts, $content = null, $tag='')
     {
 
         $buy_url = rtrim( \Flowy\Flowy::instance()->getSetting( 'buy_url' ), '/' );
@@ -73,7 +82,7 @@ class Shortcodes {
         return do_shortcode( $html );
     }
 
-    function loginLink($atts, $content = null, $tag='')
+    static function loginLink($atts, $content = null, $tag='')
     {
 
         $a = shortcode_atts( array(
@@ -91,7 +100,7 @@ class Shortcodes {
 
     
 
-    function connectAccountLink($atts, $content = null, $tag='')
+    static function connectAccountLink($atts, $content = null, $tag='')
     {
 
         $a = shortcode_atts( array(
@@ -107,7 +116,7 @@ class Shortcodes {
         return do_shortcode( $html );
     }
 
-    function logoutLink($atts, $content = null, $tag='')
+    static function logoutLink($atts, $content = null, $tag='')
     {
 
         $a = shortcode_atts( array(

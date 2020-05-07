@@ -17,7 +17,7 @@ class Auth {
             
         }
 
-        if ( isset( $_GET['flow_paywall_logout_callback'] ) ){
+        if ( isset( $_GET['flowy_paywall_logout_callback'] ) ){
             // Remove logout callback to prevent issues if user try to login again without refreshing the page
             self::stripCallbackUrl();
         }
@@ -57,7 +57,7 @@ class Auth {
         
         // Remove logout url to prevent logout when redirected back from login
         $current_url = remove_query_arg( 'flowy_paywall_callback',  $current_url );
-        $current_url = remove_query_arg( 'flow_paywall_logout_callback',  $current_url );
+        $current_url = remove_query_arg( 'flowy_paywall_logout_callback',  $current_url );
         $current_url = remove_query_arg( 'code',  $current_url );
 
         wp_redirect( $current_url );
@@ -94,7 +94,8 @@ class Auth {
         
         $redirect_uri = (Auth::getCurrentUrl());        
         $redirect_uri = remove_query_arg( 'flowy_paywall_logout',  $redirect_uri );
-        $redirect_uri = add_query_arg( 'flow_paywall_logout_callback', '',  $redirect_uri );
+        $redirect_uri = add_query_arg( 'flowy_paywall_logout_callback', '',  $redirect_uri );
+        $error_url = urlencode(add_query_arg( 'logout_error', 'true',  $redirect_uri ));
         $redirect_uri = urlencode($redirect_uri);
 
         $logout_url = "${api_url}/logout?clientId={$client_id}&returnUrl=${redirect_uri}&errorUrl=${redirect_uri}";
