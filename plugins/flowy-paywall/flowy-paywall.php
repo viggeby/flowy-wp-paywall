@@ -1,12 +1,14 @@
 <?php
 /**
  * Plugin Name: Flowy Paywall
- * Description: Add paywall functions from Flowy
+ * Description: Add paywall functions from Flowy (https://www.flowy.se/)
  * Version: 1.0
- * Author: Innovator Digital Markets AB
- * Author URI: https://www.innovator.se/
+ * Author: Viggeby Data AB
+ * Author URI: https://www.viggeby.com/
  * Requires at least: 5.2
  * Requires PHP: 7.2
+ * License: GPLv2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  */
 
 require_once( 'Api.php' );

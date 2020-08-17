@@ -88,8 +88,6 @@ class Flowy {
             // Break if the user has access to avoid unnessecary calls to the API
             if( $is_subscriber )
             {
-                echo "Checking $api_product. ";
-
                 break;
             }
         }          
