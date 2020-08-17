@@ -76,13 +76,25 @@ class Flowy {
         $api_product = $this->getSetting( 'api_product' );
         $api_category_type = Flowy::instance()->getSetting( 'api_category_type' );
         $api = new Api($auth->access_token);
-        $result = $api->checkAccess( $api_product, $api_category_type );
 
-        // Check if user has access
-        $is_subscriber = filter_var( $result['access'], FILTER_VALIDATE_BOOLEAN );
 
+        $api_products = explode(',', $api_product); 
+
+        // Check access on all products until one returns true.
+        $is_subscriber = false;
+        foreach( $api_products as $api_product ){
+            $is_subscriber = $api->checkAccess( trim( $api_product ), $api_category_type );
+
+            // Break if the user has access to avoid unnessecary calls to the API
+            if( $is_subscriber )
+            {
+                echo "Checking $api_product. ";
+
+                break;
+            }
+        }          
+        
         Flowy::doCookieAuth( $is_subscriber );
-
         
     }
 

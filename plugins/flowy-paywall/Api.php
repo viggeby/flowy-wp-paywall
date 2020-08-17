@@ -14,7 +14,9 @@ class Api {
             'product'       => $product,
             'categoryType'  => $category_type
         ];
-        return $this->queryApi( 'v1/customer/access', 'POST', $data );
+        $result =  $this->queryApi( 'v1/customer/access', 'POST', $data );
+
+        return filter_var( $result['access'], FILTER_VALIDATE_BOOLEAN );
      }
 
     function queryApi( $uri,  $method = 'GET', $data = []){

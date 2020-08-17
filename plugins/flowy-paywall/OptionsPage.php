@@ -78,7 +78,7 @@ class OptionsPage {
             <tr valign="top">
                 <th scope="row"><label for="flowy_paywall_api_product">API Product Name</label></th>
                 <td><input type="text" id="flowy_paywall_api_product" name="flowy_paywall_api_product" value="<?php echo get_option('flowy_paywall_api_product'); ?>" />
-                <p class="description">This is the name of the product to send to the <a href="https://doc.mediaconnect.no/doc/ConnectID/#tag/Access/paths/~1v1~1customer~1access/post">Check Access API</a> when verifying a user subscription.</p>
+                <p class="description">This is the name of the product to send to the <a href="https://doc.mediaconnect.no/doc/ConnectID/#tag/Access/paths/~1v1~1customer~1access/post">Check Access API</a> when verifying a user subscription. You can check access against multiple products be separating them with a comma like "product1,product2,product3". (Tip: Put the most likely product first to improve performance as they will be checkd in sequence.)</p>
                 </td>
             </tr>
             <tr valign="top">
