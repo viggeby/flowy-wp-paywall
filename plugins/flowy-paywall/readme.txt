@@ -1,7 +1,22 @@
-# Flowy Paywall Plugin for WordPress
+=== Flowy Paywall ===
+Contributors: jstensved
+Plugin Name: Flowy Paywall
+Tags: flowy
+Description: Add paywall functions from Flowy (https://www.flowy.se/)
+Version: 1.0
+Author: Viggeby Data AB
+Author URI: https://www.viggeby.com/
+Requires at least: 5.2
+Requires PHP: 7.2
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Stable tag: trunk
+Tested up to: 5.4
 
 
-## General
+This plugin adds paywall functionality to WordPress with login by Flowy (flowy.se) and a verification that the user have access to a subscription configured in the admin panel.
+
+== Description ==
 
 This plugin adds paywall functionality to WordPress with login by Flowy and a verification that the user have access to a subscription configured in the admin panel.
 
@@ -9,17 +24,45 @@ The plugin does not, by design, interact with the WordPress authentication syste
 
 If the user is already signed-in with flowy, either with persistent cookie or with a recent sign-in, a front-end script will check if the user have access and renew the login token by a redirect if it is needed and can be done without interrupting the user.
 
-## Licence
+== Screenshots ==
 
-Flowy Paywall is free software and licenced under GPLv2 or later: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or any later version.
+1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is stored in the /assets directory.
+2. This is the second screen shot
 
-Flowy Paywall is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+== Frequently Asked Questions ==
 
-You should have received a copy of the GNU General Public License along with Flowy Paywall. If not, see http://www.gnu.org/licenses/gpl-2.0.html.
+= What do I need to use this plugin? =
 
-## Install and configuration
+You will need an account along with a ClientId and Secret provided from your representative at Flowy.
 
-No special steps are required outside of WordPress standard plugin activation. A configuration is needed through the options page <strong>Flowy Paywall</strong> accessible if you have `manage_options` permisssions.
+= How do I ask the API for additional information on behalf of the user? =
+
+If you need to interact with the Flowy API after authentication on behalf of the user, for instance to fetch additional data, you can hook into the `flowy_paywall_after_auth` which is called after authentication with the authentication response as argument.
+
+The `Auth` class calls this action right after response from the authentication call. This method is called regardless of authentication is successful or not.
+
+Do use the resulting token you might do something like this:
+
+    add_action( 'flowy_paywall_after_auth',  'my_theme_flowy_paywall_after_auth', 20 );
+
+    function my_theme_flowy_paywall_after_auth( $auth ){
+
+        // Get the access token
+        $access_token = $auth->access_token;
+
+        // TODO: Do something with access token
+
+    }
+
+
+== Documentation ==
+
+= 1.0 =
+* First release of Flowy Paywall
+
+== A brief Markdown Example ==
+
+## General
 
 # Shortcodes
 
@@ -119,24 +162,4 @@ There are som basic helper functions to align with WordPress naming convention i
     }
 
 ## Action hooks
-
-
-### After authentication 
-
-If you need to interact with the Flowy API after authentication on behalf of the user, for instance to fetch additional data, you can hook into the `flowy_paywall_after_auth` which is called after authentication with the authentication response as argument.
-
-The `Auth` class calls this action right after response from the authentication call. This method is called regardless of authentication is successful or not.
-
-Do use the resulting token you might do something like this:
-
-    add_action( 'flowy_paywall_after_auth',  'my_theme_flowy_paywall_after_auth', 20 );
-
-    function my_theme_flowy_paywall_after_auth( $auth ){
-
-        // Get the access token
-        $access_token = $auth->access_token;
-
-        // TODO: Do something with access token
-
-    }
 
