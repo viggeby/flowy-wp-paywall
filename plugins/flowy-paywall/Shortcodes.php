@@ -64,7 +64,7 @@ class Shortcodes {
     static function buyLink($atts, $content = null, $tag='')
     {
 
-        $buy_url = rtrim( \Flowy\Flowy::instance()->getSetting( 'buy_url' ), '/' );
+        $buy_url = rtrim( Flowy::getSetting( 'buy_url' ), '/' );
 
         $a = shortcode_atts( array(
             'name' => '',
@@ -131,7 +131,7 @@ class Shortcodes {
         return do_shortcode( $html );
     }
 
-    
+
 
 
 }

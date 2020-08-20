@@ -118,6 +118,13 @@ There are som basic helper functions to align with WordPress naming convention i
         \Flowy\Flowy::logout();
     }
 
+#### Fetching user products
+To fetch the array with user products after enabling the option "Fetch user products" in settings you can user the following snippet in code to retrieve the data:
+
+    $products =  \Flowy\UserData::getUserProducts();
+
+If the option is off or the user is not logged in `getUserProducts()` will return `NULL`.
+
 ## Action hooks
 
 
@@ -139,4 +146,9 @@ Do use the resulting token you might do something like this:
         // TODO: Do something with access token
 
     }
+
+
+## On logout
+
+
 

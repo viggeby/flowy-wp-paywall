@@ -9,6 +9,10 @@ class Auth {
 
         if ( isset($_GET['flowy_paywall_callback']) && isset($_GET['code']) && !empty( $_GET['code'] ) ){
 
+
+            error_log( 'OAuth code recieved in callback.' );
+
+
             // Code included in GET
             $code = $_GET['code'];
 
@@ -65,8 +69,8 @@ class Auth {
     }
     
     static function getAuthorizeUrl(){
-        $client_id = urlencode(Flowy::instance()->getSetting( 'client_id' ));
-        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
+        $client_id = urlencode(Flowy::getSetting( 'client_id' ));
+        $api_url = rtrim(Flowy::getSetting( 'login_url' ), '/');
         $redirect_uri = urlencode(Auth::getRedirectUrl());
         return "${api_url}/oauth/authorize?response_type=code&client_id=${client_id}&redirect_uri=${redirect_uri}";
     }
@@ -75,8 +79,8 @@ class Auth {
     static function getConnectAccountUrl(){
        
         // If successful, redirect to login endpoint to refresh login and subscription access
-        $client_id = urlencode(Flowy::instance()->getSetting( 'client_id' ));
-        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
+        $client_id = urlencode(Flowy::getSetting( 'client_id' ));
+        $api_url = rtrim(Flowy::getSetting( 'login_url' ), '/');
         $error_url = urlencode(Auth::getCurrentUrl());
         $success_url = urlencode(Auth::getAuthorizeUrl());
         return "${api_url}/register?clientId=${client_id}&returnUrl=${success_url}&errorUrl=${error_url}";
@@ -89,8 +93,8 @@ class Auth {
     }
 
     static function logout(){
-        $client_id = urlencode(Flowy::instance()->getSetting( 'client_id' ));
-        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
+        $client_id = urlencode(Flowy::getSetting( 'client_id' ));
+        $api_url = rtrim(Flowy::getSetting( 'login_url' ), '/');
         
         $redirect_uri = (Auth::getCurrentUrl());        
         $redirect_uri = remove_query_arg( 'flowy_paywall_logout',  $redirect_uri );
@@ -99,6 +103,10 @@ class Auth {
         $redirect_uri = urlencode($redirect_uri);
 
         $logout_url = "${api_url}/logout?clientId={$client_id}&returnUrl=${redirect_uri}&errorUrl=${redirect_uri}";
+
+        // Trigger actions on logout
+        do_action( 'flowy_paywall_on_logout' );
+        
         wp_redirect($logout_url);
         exit;
     }
@@ -106,9 +114,9 @@ class Auth {
     
     static function doTokenLogin($code){
 
-        $api_url = rtrim(Flowy::instance()->getSetting( 'login_url' ), '/');
-        $client_id = urlencode( Flowy::instance()->getSetting( 'client_id' ) );
-        $client_secret = urlencode( Flowy::instance()->getSetting( 'client_secret' ) );
+        $api_url = rtrim(Flowy::getSetting( 'login_url' ), '/');
+        $client_id = urlencode(Flowy::getSetting( 'client_id' ) );
+        $client_secret = urlencode(Flowy::getSetting( 'client_secret' ) );
         $redirect_uri = urlencode(Auth::getRedirectUrl());
 
         $ch = curl_init();

@@ -19,6 +19,7 @@ class Flowy {
     function setup(){
         $this->options_page->setup();
         Shortcodes::register();
+        UserData::setup();
         $this->addFrontEndScripts();
 
         add_action( 'init', function(){
@@ -34,7 +35,7 @@ class Flowy {
         });
 
         add_action( 'flowy_paywall_after_auth', [ $this, 'checkSubscriptionWithApi' ] , 10 );
-        add_action( 'flowy_paywall_after_auth', '\Flowy\Auth::stripCallbackUrl', 20 );
+        add_action( 'flowy_paywall_after_auth', '\Flowy\Auth::stripCallbackUrl', 999 );
         
         
         // Notify that the user us not logged in with Flowy and no need to hammer the API
@@ -52,7 +53,7 @@ class Flowy {
 
             add_action( 'wp_enqueue_scripts', function(){
 
-                $api_login_check_url = rtrim( $this->getSetting( 'login_url' ), '/') . '/loginCheck?clientId=' . $this->getSetting( 'client_id' ) . '&returnUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=true&errorUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=false';
+                $api_login_check_url = rtrim( Flowy::getSetting( 'login_url' ), '/') . '/loginCheck?clientId=' . Flowy::getSetting( 'client_id' ) . '&returnUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=true&errorUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=false';
 
                 wp_enqueue_script( 'flowy-paywall-api-login-check', $api_login_check_url, [], '1.0', TRUE );
 
@@ -66,15 +67,21 @@ class Flowy {
 
     }
  
-    function getSetting($name){
+    static function getSetting($name){
         return get_option( "flowy_paywall_${name}" );
     }
 
     function checkSubscriptionWithApi($auth){      
         
+
+        if(empty($auth)){
+            error_log( 'Auth token returned from login is emtpy.' );
+            wp_die('Login failed for unkown reason. Please try again.');
+        }
+
         // Ask api for list of subscriptions
-        $api_product = $this->getSetting( 'api_product' );
-        $api_category_type = Flowy::instance()->getSetting( 'api_category_type' );
+        $api_product = Flowy::getSetting( 'api_product' );
+        $api_category_type = Flowy::getSetting( 'api_category_type' );
         $api = new Api($auth->access_token);
 
 

@@ -8,6 +8,12 @@ class Api {
         $this->access_token = $access_token;
     }
 
+    function products(){       
+
+        return $this->queryApi( 'v1/customer/product', 'GET' );
+
+     }
+
     function checkAccess( $product, $category_type ){       
 
         $data = [
@@ -21,7 +27,7 @@ class Api {
 
     function queryApi( $uri,  $method = 'GET', $data = []){
 
-        $api_url = rtrim(Flowy::instance()->getSetting( 'api_url' ), '/'); 
+        $api_url = rtrim(Flowy::getSetting( 'api_url' ), '/'); 
         $url = "${api_url}/${uri}";
         
         $opts = array('http' =>

@@ -22,6 +22,7 @@ class OptionsPage {
         add_option( 'flowy_paywall_api_product', '');
         add_option( 'flowy_paywall_api_category_type', '');
         add_option( 'flowy_paywall_buy_url', '');
+        add_option( 'flowy_paywall_fetch_user_products', '');
 
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_api_url', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_login_url', 'flowy_paywall_callback' );
@@ -30,6 +31,7 @@ class OptionsPage {
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_api_product', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_api_category_type', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_buy_url', 'flowy_paywall_callback' );
+        register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_fetch_user_products', 'flowy_paywall_callback' );
     }
 
     function optionsPage()
@@ -91,6 +93,12 @@ class OptionsPage {
                 <th scope="row"><label for="flowy_paywall_buy_url">Buy Subscription Url</label></th>
                 <td><input type="text" id="flowy_paywall_buy_url" placeholder="" name="flowy_paywall_buy_url" value="<?php echo get_option('flowy_paywall_buy_url'); ?>" />
                 <p class="description">Url for where to buy a subscription. Can also be used as a Base URL and suffixed with a name of a specific magazine using shortcodes.</p>
+                </td>
+            </tr>
+            <tr valign="top">
+                <th scope="row"><label for="flowy_paywall_buy_url">Fetch user products</label></th>
+                <td><input type="checkbox" id="flowy_paywall_fetch_user_products" placeholder="" name="flowy_paywall_fetch_user_products" <?php echo checked( 1, get_option( 'flowy_paywall_fetch_user_products' ), false )?> value="1" />
+                <p class="description">Enable to fetch the users products when authenticating.</p>
                 </td>
             </tr>
         </table>
