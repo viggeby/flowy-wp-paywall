@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Flowy Paywall
  * Description: Add paywall functions from Flowy (https://www.flowy.se/)
- * Version: 1.0
+ * Version: 1.1
  * Author: Viggeby Data AB
  * Author URI: https://www.viggeby.com/
  * Requires at least: 5.2

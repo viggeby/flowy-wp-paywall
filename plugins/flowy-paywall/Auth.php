@@ -50,6 +50,7 @@ class Auth {
         
         // Remove logout url to prevent logout when redirected back from login
         $current_url = remove_query_arg( 'flowy_paywall_logout',  $current_url );
+        $current_url = remove_query_arg( 'flowy_paywall_login',  $current_url );
         $current_url = remove_query_arg( 'code',  $current_url );
 
         return add_query_arg( 'flowy_paywall_callback', '',  $current_url );

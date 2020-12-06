@@ -57,6 +57,15 @@ Do use the resulting token you might do something like this:
 
 == Documentation ==
 
+= 1.2 =
+
+* Updated login logic to avoid redirect loop when using `?flowy_paywall_login` to force new login
+* Consolidated readme in repo.
+
+= 1.1 =
+
+Bugfixes and improvements
+
 = 1.0 =
 * First release of Flowy Paywall
 
@@ -161,5 +170,35 @@ There are som basic helper functions to align with WordPress naming convention i
         \Flowy\Flowy::logout();
     }
 
+
+#### Fetching user products
+To fetch the array with user products after enabling the option "Fetch user products" in settings you can user the following snippet in code to retrieve the data:
+
+    $products =  \Flowy\UserData::getUserProducts();
+
+If the option is off or the user is not logged in `getUserProducts()` will return `NULL`.
+
 ## Action hooks
 
+
+### After authentication 
+
+If you need to interact with the Flowy API after authentication on behalf of the user, for instance to fetch additional data, you can hook into the `flowy_paywall_after_auth` which is called after authentication with the authentication response as argument.
+
+The `Auth` class calls this action right after response from the authentication call. This method is called regardless of authentication is successful or not.
+
+Do use the resulting token you might do something like this:
+
+    add_action( 'flowy_paywall_after_auth',  'my_theme_flowy_paywall_after_auth', 20 );
+
+    function my_theme_flowy_paywall_after_auth( $auth ){
+
+        // Get the access token
+        $access_token = $auth->access_token;
+
+        // TODO: Do something with access token
+
+    }
+
+
+## On logout
