@@ -17,6 +17,7 @@ require_once( 'Flowy.php' );
 require_once( 'OptionsPage.php' );
 require_once( 'Shortcodes.php' );
 require_once( 'UserData.php' );
+require_once( 'IpCheck.php' );
 
 
 Flowy\Flowy::instance()->setup();
