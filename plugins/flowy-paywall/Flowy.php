@@ -43,6 +43,11 @@ class Flowy {
             $is_logged_in = ($_GET['flowy_paywall_notify_login_status'] == true);
             Flowy::setThirdPartyLoginStatus( $is_logged_in );
         }
+
+        if ( !is_admin() ) {
+            // Check if IP address is on allow-list
+           IpCheck::doIpCheck();
+        }
     }
 
     function addFrontEndScripts(){

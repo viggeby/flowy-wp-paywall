@@ -23,6 +23,7 @@ class OptionsPage {
         add_option( 'flowy_paywall_api_category_type', '');
         add_option( 'flowy_paywall_buy_url', '');
         add_option( 'flowy_paywall_fetch_user_products', '');
+        add_option( 'flowy_paywall_ip_allow_list', '');
 
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_api_url', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_login_url', 'flowy_paywall_callback' );
@@ -32,6 +33,7 @@ class OptionsPage {
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_api_category_type', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_buy_url', 'flowy_paywall_callback' );
         register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_fetch_user_products', 'flowy_paywall_callback' );
+        register_setting( 'flowy_paywall_auth_settings', 'flowy_paywall_ip_allow_list', 'flowy_paywall_callback' );
     }
 
     function optionsPage()
@@ -99,6 +101,12 @@ class OptionsPage {
                 <th scope="row"><label for="flowy_paywall_buy_url">Fetch user products</label></th>
                 <td><input type="checkbox" id="flowy_paywall_fetch_user_products" placeholder="" name="flowy_paywall_fetch_user_products" <?php echo checked( 1, get_option( 'flowy_paywall_fetch_user_products' ), false )?> value="1" />
                 <p class="description">Enable to fetch the users products when authenticating.</p>
+                </td>
+            </tr>
+            <tr valign="top">
+                <th scope="row"><label for="flowy_paywall_ip_allow_list">IP allow list</label></th>
+                <td><input type="text" id="flowy_paywall_ip_allow_list" name="flowy_paywall_ip_allow_list" value="<?php echo get_option('flowy_paywall_ip_allow_list'); ?>" />
+                <p class="description">Allow users from these addresses without checking with API. Separate multiple addresses with space (Ex. "127.0.01 10.0.0.1"). Your current IP is <?php echo $_SERVER['REMOTE_ADDR']; ?></p>
                 </td>
             </tr>
         </table>
