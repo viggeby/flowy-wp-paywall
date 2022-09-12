@@ -25,6 +25,10 @@ class Flowy {
         add_action( 'init', function(){
             Auth::initCallbackListener();
         
+            if(isset($_GET['flowy_paywall_try_login'])){
+                Auth::try_authorize();
+            }
+
             if(isset($_GET['flowy_paywall_login'])){
                 Auth::authorize();
             }
@@ -32,44 +36,55 @@ class Flowy {
             if(isset($_GET['flowy_paywall_logout'])){
                 Flowy::logout();
             }
+
+            // Notify that the user us not logged in with Flowy and no need to hammer the API
+            if ( isset($_GET['flowy_paywall_notify_login_status']) ){
+                $is_logged_in = boolval( $_GET['flowy_paywall_notify_login_status'] );
+                Flowy::setThirdPartyLoginStatus( $is_logged_in );
+            }
+
+            // Listen for previous login with flag so we can set this across domains with request in case of multi-domain installations
+            if ( isset($_GET['flowy_paywall_previous_login']) ){
+                $previous_login = boolval( $_GET['flowy_paywall_previous_login'] );
+                Flowy::setPreviousLoginCookie( $previous_login );
+            }
+
+            // If not admin, not logged in, has logged in before and we haven't checked with idp, try a soft login for sso
+            if ( !Flowy::is_wp_login_page() && !is_admin() && !Flowy::isLoggedIn() && Flowy::getPreviousLoginCookie() !== NULL && Flowy::getThirdPartyLoginStatus() === NULL ){
+                Auth::try_authorize();
+            }
+
+            if ( !is_admin() ) {
+                // Check if IP address is on allow-list
+                IpCheck::doIpCheck();
+            }
         });
 
         add_action( 'flowy_paywall_after_auth', [ $this, 'checkSubscriptionWithApi' ] , 10 );
         add_action( 'flowy_paywall_after_auth', '\Flowy\Auth::stripCallbackUrl', 999 );
         
-        
-        // Notify that the user us not logged in with Flowy and no need to hammer the API
-        if ( isset($_GET['flowy_paywall_notify_login_status']) ){
-            $is_logged_in = ($_GET['flowy_paywall_notify_login_status'] == true);
-            Flowy::setThirdPartyLoginStatus( $is_logged_in );
-        }
 
-        if ( !is_admin() ) {
-            // Check if IP address is on allow-list
-           IpCheck::doIpCheck();
-        }
+    }
+
+    static function is_wp_login_page(){
+        return $GLOBALS['pagenow'] === 'wp-login.php';
     }
 
     function addFrontEndScripts(){
 
+        add_action( 'wp_head', function(){
 
-        // Add front-end logic if not logged in
-        if ( Flowy::getThirdPartyLoginStatus() == null) {
+            $flowy_paywall = json_encode( [
+                "login_url"                     =>  Auth::getAuthorizeUrl(),
+                "login_status_is_unknown"       =>  Flowy::isLoggedIn() ?? false, // Obsolete
+                "is_logged_in"                  => Flowy::isLoggedIn() ?? false,
+                "previous_login"                =>  Flowy::getPreviousLoginCookie() ?? false,
+                "third_party_login_status"      =>  Flowy::getThirdPartyLoginStatus() ?? false
+            ] );
 
-            add_action( 'wp_enqueue_scripts', function(){
+            echo "<script type='text/javascript'>window.flowy_paywall = {$flowy_paywall};</script>\n";
 
-                $api_login_check_url = rtrim( Flowy::getSetting( 'login_url' ), '/') . '/loginCheck?clientId=' . Flowy::getSetting( 'client_id' ) . '&returnUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=true&errorUrl=' . get_home_url() . '?flowy_paywall_ajax_auth_result=false';
-
-                wp_enqueue_script( 'flowy-paywall-api-login-check', $api_login_check_url, [], '1.0', TRUE );
-
-                wp_enqueue_script( 'flowy-paywall-auth-check', plugin_dir_url( __FILE__ ) . '/js/auth_check.js', [ 'jquery', 'flowy-paywall-api-login-check' ], '1.0', TRUE );
-                wp_localize_script( 'flowy-paywall-auth-check', "flowy_paywall", [
-                    "login_url"                 =>  Auth::getAuthorizeUrl(),
-                    "login_status_is_unknown"   =>  (Flowy::isLoggedIn() == null ? 'true' : 'false')
-                ]);
-            });
-        }
-
+        });
     }
  
     static function getSetting($name){
@@ -158,25 +173,59 @@ class Flowy {
 
         // Transient must be a string, non-existing will be returned as false by wp.
         \setcookie( 'flowy_paywall', $uniqid, time()+$expiration, '/' );
+
+        // Keep actual value in transient to avoid front-end tampering
         \set_transient( "flowy_paywall_${uniqid}", $is_subscriber ? 'access' : 'noaccess', $expiration );
 
         // Make cookie readable during this request to avoid reload to make it available
         $_COOKIE['flowy_paywall'] = $uniqid;
 
+        // Set cookie to show that we have checked login status with identity provider
         Flowy::setThirdPartyLoginStatus(true);
 
+        // Set flag for checking if we can assume user have an account
+        Flowy::setPreviousLoginCookie(true);
+
+    }
+
+    
+
+    /**
+     * Set cross domain cookie in a way that works on php5+
+     */
+    static function setCrossDomainCookie( $name, $value, $expires ){
+
+        $expires_string = date( 'D, d M Y H:i:s e', $expires );
+        //echo "setting cookie ${name}=${value} ${expires_string}";
+
+        \header("Set-Cookie: ${name}=${value}; path=/; Expires=${expires_string}; SameSite=None; Secure;");
+
+        // Make available during this request
+        $_COOKIE[$name] = $value;
+    }
+
+    static function setPreviousLoginCookie( $previous_login ){
+
+        $expires = boolval( $previous_login ) ? time()+MONTH_IN_SECONDS : -1;
+            
+        Flowy::setCrossDomainCookie( 'flowy_paywall_previous_login', $previous_login, $expires);      
+    }
+
+    static function getPreviousLoginCookie(){
+
+        if ( !isset($_COOKIE['flowy_paywall_previous_login']) ){
+            return null;
+        }
+
+        return $_COOKIE['flowy_paywall_previous_login'];  
     }
 
     static function setThirdPartyLoginStatus( $is_logged_in){
 
         // Create a server side transiet and match with cookie
-        $expiration = HOUR_IN_SECONDS*24;
+        $expires = boolval( $is_logged_in ) ?  HOUR_IN_SECONDS*24 : -1;
 
-        \setcookie( 'flowy_paywall_third_party_login', $is_logged_in, time()+$expiration, '/' );
-
-        // Make cookie readable during this request to avoid reload to make it available
-        $_COOKIE['flowy_paywall_third_party_login'] = $is_logged_in;
-
+        Flowy::setCrossDomainCookie( 'flowy_paywall_third_party_login', $is_logged_in,  time()+$expires );
     }
 
     static function getThirdPartyLoginStatus(){
@@ -203,7 +252,8 @@ class Flowy {
             // Unset cooies
             \setcookie( 'flowy_paywall', null, -1, '/' );
             \setcookie( 'flowy_paywall_third_party_login', null, -1, '/' );
-           
+            \setcookie( 'flowy_paywall_previous_login', null, -1, '/' );
+
 
             // Send logout request to external provider
             Auth::logout();            
