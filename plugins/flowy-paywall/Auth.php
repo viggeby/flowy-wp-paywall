@@ -26,16 +26,16 @@ class Auth {
             self::stripCallbackUrl();
         }
 
-        if ( isset($_GET['flowy_paywall_ajax_auth_result']) ){
+        // if ( isset($_GET['flowy_paywall_ajax_auth_result']) ){
 
-            $result = $_GET['flowy_paywall_ajax_auth_result'];
-            echo "window.flowy_paywall_ajax_auth_result = ${result};
-                (function($){ 
-                    $(window).trigger('flowy_paywall_ajax_auth_result', window.flowy_paywall_ajax_auth_result);
-                })(jQuery);";
-            exit;
+        //     $result = $_GET['flowy_paywall_ajax_auth_result'];
+        //     echo "window.flowy_paywall_ajax_auth_result = ${result};
+        //         (function($){ 
+        //             $(window).trigger('flowy_paywall_ajax_auth_result', window.flowy_paywall_ajax_auth_result);
+        //         })(jQuery);";
+        //     exit;
 
-        }
+        // }
         
     }
 
@@ -62,7 +62,7 @@ class Auth {
         
         // Remove logout url to prevent logout when redirected back from login
         $current_url = remove_query_arg( 'flowy_paywall_callback',  $current_url );
-        $current_url = remove_query_arg( 'flowy_paywall_logout_callback',  $current_url );
+        $current_url = remove_query_arg( 'flowy_paywall_logout_callback',  $current_url );   
         $current_url = remove_query_arg( 'code',  $current_url );
 
         wp_redirect( $current_url );
@@ -88,8 +88,31 @@ class Auth {
     }
     
 
+    /**
+     * Redirect to sso endpoint and prompt user if not logged in
+     */
     static function authorize(){       
-        wp_redirect(Auth::getAuthorizeUrl());
+        \wp_redirect(Auth::getAuthorizeUrl());
+        exit;
+    }
+
+    /**
+     * Redirect to sso endpoint, login locally if logged in but do not prompt user if not logged in
+     */
+    static function try_authorize(){       
+
+        $current_url = Auth::getCurrentUrl();
+        $current_url = remove_query_arg( 'flowy_paywall_notify_login_status',  $current_url );
+        $current_url = remove_query_arg( 'flowy_paywall_previous_login',  $current_url );     
+
+        $return_url = add_query_arg( 'flowy_paywall_login', '1',  $current_url ) ;
+
+        // Set flag that we have checked login with third party to avoid loop
+        $error_url = add_query_arg( 'flowy_paywall_notify_login_status', '1', $current_url );
+
+        $login_check_url = rtrim( Flowy::getSetting( 'login_url' ), '/') . '/loginCheck?clientId=' . Flowy::getSetting( 'client_id' ) . '&returnUrl=' . urlencode( $return_url ) . '&errorUrl=' . urlencode( $error_url );
+
+       \wp_redirect( $login_check_url );
         exit;
     }
 

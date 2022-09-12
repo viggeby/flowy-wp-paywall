@@ -11,7 +11,8 @@ class IpCheck {
         {
 
             Flowy::doCookieAuth( true );
-            Flowy::setThirdPartyLoginStatus(true);
+            Flowy::setThirdPartyLoginStatus( true );
+            Flowy::setPreviousLoginCookie( true );
 
         }
     }
