@@ -40,3 +40,7 @@ function flowy_get_login_url(){
 function flowy_logout(){
     \Flowy\Flowy::logout();
 }
+
+// TEST
+header('Access-Control-Allow-Origin: https://localhost');
+header('Access-Control-Allow-Credentials: true');

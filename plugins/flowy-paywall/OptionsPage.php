@@ -88,7 +88,7 @@ class OptionsPage {
             <tr valign="top">
                 <th scope="row"><label for="flowy_paywall_api_category_type">API Category Type</label></th>
                 <td><input type="text" id="flowy_paywall_api_category_type" name="flowy_paywall_api_category_type" value="<?php echo get_option('flowy_paywall_api_category_type'); ?>" />
-                <p class="description">This is the name of the category tyupe to send to the <a href="https://doc.mediaconnect.no/doc/ConnectID/#tag/Access/paths/~1v1~1customer~1access/post">Check Access API</a> when verifying a user subscription.</p>
+                <p class="description">This is the name of the category type to send to the <a href="https://doc.mediaconnect.no/doc/ConnectID/#tag/Access/paths/~1v1~1customer~1access/post">Check Access API</a> when verifying a user subscription.</p>
                 </td>
             </tr>
             <tr valign="top">

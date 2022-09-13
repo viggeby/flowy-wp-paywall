@@ -41,12 +41,14 @@ class Flowy {
             if ( isset($_GET['flowy_paywall_notify_login_status']) ){
                 $is_logged_in = boolval( $_GET['flowy_paywall_notify_login_status'] );
                 Flowy::setThirdPartyLoginStatus( $is_logged_in );
+                exit;
             }
 
             // Listen for previous login with flag so we can set this across domains with request in case of multi-domain installations
             if ( isset($_GET['flowy_paywall_previous_login']) ){
                 $previous_login = boolval( $_GET['flowy_paywall_previous_login'] );
                 Flowy::setPreviousLoginCookie( $previous_login );
+                exit;
             }
 
             // If not admin, not logged in, has logged in before and we haven't checked with idp, try a soft login for sso
@@ -60,7 +62,10 @@ class Flowy {
             }
         });
 
+        // Handle the response
         add_action( 'flowy_paywall_after_auth', [ $this, 'checkSubscriptionWithApi' ] , 10 );
+
+        // Clear callback parameters after auth to keep urls nice and clean in browser
         add_action( 'flowy_paywall_after_auth', '\Flowy\Auth::stripCallbackUrl', 999 );
         
 
@@ -77,7 +82,7 @@ class Flowy {
             $flowy_paywall = json_encode( [
                 "login_url"                     =>  Auth::getAuthorizeUrl(),
                 "login_status_is_unknown"       =>  Flowy::isLoggedIn() ?? false, // Obsolete
-                "is_logged_in"                  => Flowy::isLoggedIn() ?? false,
+                "is_logged_in"                  =>  Flowy::isLoggedIn() ?? false,
                 "previous_login"                =>  Flowy::getPreviousLoginCookie() ?? false,
                 "third_party_login_status"      =>  Flowy::getThirdPartyLoginStatus() ?? false
             ] );
@@ -118,7 +123,7 @@ class Flowy {
                 break;
             }
         }          
-        
+
         Flowy::doCookieAuth( $is_subscriber );
         
     }
@@ -196,9 +201,8 @@ class Flowy {
     static function setCrossDomainCookie( $name, $value, $expires ){
 
         $expires_string = date( 'D, d M Y H:i:s e', $expires );
-        //echo "setting cookie ${name}=${value} ${expires_string}";
 
-        \header("Set-Cookie: ${name}=${value}; path=/; Expires=${expires_string}; SameSite=None; Secure;");
+        \header("Set-Cookie: ${name}=${value}; path=/; Expires=${expires_string}; SameSite=None; Secure;", false);
 
         // Make available during this request
         $_COOKIE[$name] = $value;

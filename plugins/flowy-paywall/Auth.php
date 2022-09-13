@@ -18,24 +18,13 @@ class Auth {
 
             // Login with code
             self::doTokenLogin($code);
-            
+
         }
 
         if ( isset( $_GET['flowy_paywall_logout_callback'] ) ){
             // Remove logout callback to prevent issues if user try to login again without refreshing the page
             self::stripCallbackUrl();
         }
-
-        // if ( isset($_GET['flowy_paywall_ajax_auth_result']) ){
-
-        //     $result = $_GET['flowy_paywall_ajax_auth_result'];
-        //     echo "window.flowy_paywall_ajax_auth_result = ${result};
-        //         (function($){ 
-        //             $(window).trigger('flowy_paywall_ajax_auth_result', window.flowy_paywall_ajax_auth_result);
-        //         })(jQuery);";
-        //     exit;
-
-        // }
         
     }
 
@@ -157,8 +146,9 @@ class Auth {
 
         $result = curl_exec($ch);
         if (curl_errno($ch)) {
-            echo 'Error:' . curl_error($ch);
+            error_log( 'Error:' . curl_error($ch) );
         }
+
         curl_close($ch);
         do_action( 'flowy_paywall_after_auth', json_decode($result) );
         
