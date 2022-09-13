@@ -57,6 +57,14 @@ Do use the resulting token you might do something like this:
 
 == Documentation ==
 
+= 1.4 = 
+
+Fixed problem with SSO not working due to cross domain cookies with Media Connect.
+
+= 1.3 =
+
+Added IP-allow list to allow all users from an IP to bypass paywall
+
 = 1.2 =
 
 * Updated login logic to avoid redirect loop when using `?flowy_paywall_login` to force new login
@@ -201,4 +209,21 @@ Do use the resulting token you might do something like this:
     }
 
 
-## On logout
+#### 
+
+Enabling SSO across multiple domains.
+
+If you have multiple domains where you wish your users to experience a seamless login you can notify these domains that the user has previously logged in and we can peform an SSO attempt for that user on their first visit. 
+
+To tell www.domain-b.com that the user is signed in and trigger SSO from www.domain-a.com do the following:
+
+1. Make sure your recieving domain (domain-b.com) are sending the appropriate CORS-headers:
+
+        header('Access-Control-Allow-Origin: https://www.domain-a.com);
+        header('Access-Control-Allow-Credentials: true');
+
+2. From the browser on (www.domain-a.com), send a fetch request with the `flowy_paywall_previous_login=1` query parameter. Make sure to allow credentials to let cookies be set across different domains
+
+        fetch('https://www.domain-b.com?flowy_paywall_previous_login=1', {credentials: 'include'}).then(x => console.log('SSO request sent.'))
+
+3. Setup the same configuration on the other domain and reverse the domain names to create a mutual login status exchange
