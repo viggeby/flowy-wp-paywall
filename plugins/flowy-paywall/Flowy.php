@@ -41,14 +41,20 @@ class Flowy {
             if ( isset($_GET['flowy_paywall_notify_login_status']) ){
                 $is_logged_in = boolval( $_GET['flowy_paywall_notify_login_status'] );
                 Flowy::setThirdPartyLoginStatus( $is_logged_in );
-                exit;
+
+                if (isset($_GET['flowy_paywall_no_redirect'])){
+                    exit;
+                }
             }
 
             // Listen for previous login with flag so we can set this across domains with request in case of multi-domain installations
             if ( isset($_GET['flowy_paywall_previous_login']) ){
                 $previous_login = boolval( $_GET['flowy_paywall_previous_login'] );
                 Flowy::setPreviousLoginCookie( $previous_login );
-                exit;
+
+                if (isset($_GET['flowy_paywall_no_redirect'])){
+                    exit;
+                }
             }
 
             // If not admin, not logged in, has logged in before and we haven't checked with idp, try a soft login for sso
@@ -255,9 +261,9 @@ class Flowy {
 
             // Unset cooies
             \setcookie( 'flowy_paywall', null, -1, '/' );
-            \setcookie( 'flowy_paywall_third_party_login', null, -1, '/' );
             \setcookie( 'flowy_paywall_previous_login', null, -1, '/' );
 
+            // NOTE: Keep flowy_paywall_third_party_login so we know the user actually signed out on purpose
 
             // Send logout request to external provider
             Auth::logout();            
