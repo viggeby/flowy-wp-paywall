@@ -227,4 +227,5 @@ Make sure to allow credentials to let cookies be set across different domains an
 
         fetch('https://www.domain-b.com?flowy_paywall_previous_login=1&flowy_paywall_notify_login_status=0&flowy_paywall_no_redirect', {credentials: 'include'}).then(x => console.log('SSO request sent.'))
 
+
 3. Setup the same configuration on the other domain and reverse the domain names to create a mutual login status exchange

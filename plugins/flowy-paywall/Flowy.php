@@ -45,6 +45,7 @@ class Flowy {
                 if (isset($_GET['flowy_paywall_no_redirect'])){
                     exit;
                 }
+
             }
 
             // Listen for previous login with flag so we can set this across domains with request in case of multi-domain installations
@@ -55,6 +56,7 @@ class Flowy {
                 if (isset($_GET['flowy_paywall_no_redirect'])){
                     exit;
                 }
+                
             }
 
             // If not admin, not logged in, has logged in before and we haven't checked with idp, try a soft login for sso
