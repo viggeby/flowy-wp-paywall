@@ -222,8 +222,9 @@ To tell www.domain-b.com that the user is signed in and trigger SSO from www.dom
         header('Access-Control-Allow-Origin: https://www.domain-a.com);
         header('Access-Control-Allow-Credentials: true');
 
-2. From the browser on (www.domain-a.com), send a fetch request with the `flowy_paywall_previous_login=1` query parameter. Make sure to allow credentials to let cookies be set across different domains
+2. From the browser on (www.domain-a.com), send a fetch request with the `flowy_paywall_previous_login=1` query parameter. 
+Make sure to allow credentials to let cookies be set across different domains and add the flag `flowy_paywall_no_redirect` along with `flowy_paywall_third_party_login` to prevent redirects from script and making sure not previous login attempts has failed on the other domain.
 
-        fetch('https://www.domain-b.com?flowy_paywall_previous_login=1', {credentials: 'include'}).then(x => console.log('SSO request sent.'))
+        fetch('https://www.domain-b.com?flowy_paywall_previous_login=1&flowy_paywall_notify_login_status=0&flowy_paywall_no_redirect', {credentials: 'include'}).then(x => console.log('SSO request sent.'))
 
 3. Setup the same configuration on the other domain and reverse the domain names to create a mutual login status exchange
