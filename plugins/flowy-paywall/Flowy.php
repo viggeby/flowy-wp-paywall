@@ -53,9 +53,17 @@ class Flowy {
             if (isset($_GET['flowy_paywall_no_redirect'])){
                 exit;
             }
+           
+            // Remove callback params to make URLs nice and clean for visitors, analytics etc
+            if (isset($_GET['flowy_paywall_clean_url'])){
+                Flowy::clean_url();
+                exit;
+            }
+            
+        
 
             // If not admin, not logged in, has logged in before and we haven't checked with idp, try a soft login for sso
-            if ( !Flowy::is_wp_login_page() && !is_admin() && !Flowy::isLoggedIn() && Flowy::getPreviousLoginCookie() !== NULL && Flowy::getThirdPartyLoginStatus() === NULL ){
+            if ( !Flowy::is_wp_login_page() && !is_admin() && !Flowy::isLoggedIn() /*&& Flowy::getPreviousLoginCookie() !== NULL*/ && Flowy::getThirdPartyLoginStatus() === NULL ){
                 Auth::try_authorize();
             }
 
@@ -73,6 +81,16 @@ class Flowy {
         
 
     }
+
+    static function clean_url(){
+        $current_url = Auth::getCurrentUrl();
+        $current_url = remove_query_arg( 'flowy_paywall_previous_login',  $current_url );
+        $current_url = remove_query_arg( 'flowy_paywall_notify_login_status',  $current_url );
+        $current_url = remove_query_arg( 'flowy_paywall_clean_url',  $current_url );
+        
+        \wp_redirect($current_url);
+    }
+
 
     static function is_wp_login_page(){
         return $GLOBALS['pagenow'] === 'wp-login.php';
