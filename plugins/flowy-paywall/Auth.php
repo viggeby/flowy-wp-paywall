@@ -98,6 +98,8 @@ class Auth {
 
         // Set flag that we have checked login with third party to avoid loop
         $error_url = add_query_arg( 'flowy_paywall_notify_login_status', '1', $current_url );
+        $error_url = add_query_arg( 'flowy_paywall_clean_url', '1', $error_url );
+        
 
         $login_check_url = rtrim( Flowy::getSetting( 'login_url' ), '/') . '/loginCheck?clientId=' . Flowy::getSetting( 'client_id' ) . '&returnUrl=' . urlencode( $return_url ) . '&errorUrl=' . urlencode( $error_url );
 
