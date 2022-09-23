@@ -85,10 +85,11 @@ class Auth {
         exit;
     }
 
+
     /**
-     * Redirect to sso endpoint, login locally if logged in but do not prompt user if not logged in
+     * Return the URL used to try authorize current page
      */
-    static function try_authorize(){       
+    static function get_try_authorize_url(){
 
         $current_url = Auth::getCurrentUrl();
         $current_url = remove_query_arg( 'flowy_paywall_notify_login_status',  $current_url );
@@ -103,6 +104,15 @@ class Auth {
 
         $login_check_url = rtrim( Flowy::getSetting( 'login_url' ), '/') . '/loginCheck?clientId=' . Flowy::getSetting( 'client_id' ) . '&returnUrl=' . urlencode( $return_url ) . '&errorUrl=' . urlencode( $error_url );
 
+        return $login_check_url;
+    }
+
+    /**
+     * Redirect to sso endpoint, login locally if logged in but do not prompt user if not logged in
+     */
+    static function try_authorize(){       
+
+        Auth::get_try_authorize_url();
        \wp_redirect( $login_check_url );
         exit;
     }
