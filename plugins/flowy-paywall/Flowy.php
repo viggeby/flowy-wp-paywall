@@ -64,7 +64,13 @@ class Flowy {
 
             // If not admin, not logged in, has logged in before and we haven't checked with idp, try a soft login for sso
             if ( !Flowy::is_wp_login_page() && !is_admin() && !Flowy::isLoggedIn() /*&& Flowy::getPreviousLoginCookie() !== NULL*/ && Flowy::getThirdPartyLoginStatus() === NULL ){
-                Auth::try_authorize();
+                
+                // Do a soft redirect to allow facebook, google and other services to read meta without redirect from headers
+                add_action( 'wp_head', function(){
+                    $try_auth_url = Auth::get_try_authorize_url();
+                    echo "<script type='text/javascript'>window.location = '{$try_auth_url}';</script>\n";
+                });
+
             }
 
             if ( !is_admin() ) {
