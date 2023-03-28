@@ -14,7 +14,7 @@ services:
     image: mysql:5.7
     # Define restart policy
     # https://docs.docker.com/compose/compose-file/#restart
-    restart: always
+    restart: unless-stopped
     # Volumes definition
     # Named volume, allows persisted data but without caring where locally it is stored
     # https://nickjanetakis.com/blog/docker-tip-28-named-volumes-vs-path-based-volumes
@@ -42,18 +42,19 @@ services:
     # Feel free to add a version of WordPress
     # I.e. wordpress:5.2.0
     #image: wordpress
-    build:
-      context: ''
+    build: .
     # Define restart policy
     # https://docs.docker.com/compose/compose-file/#restart
-    restart: always
+    restart: unless-stopped
     # Volumes definition
     # https://docs.docker.com/compose/compose-file/#volumes
     # Maps your local folder, to path in a container
     # Useful for file edits
     # I like to map only wp-content
     # We should not care about WP core files
-    volumes: ["./:/var/www/html/wp-content"]
+    volumes:
+      - "./plugins/flowy-paywall:/var/www/html/wp-content/plugins/flowy-paywall"
+      - "./xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini"
     # Add environment variables
     # https://docs.docker.com/compose/compose-file/#environment
     environment:
@@ -81,7 +82,7 @@ services:
     image: phpmyadmin/phpmyadmin
     # Define restart policy
     # https://docs.docker.com/compose/compose-file/#restart
-    restart: always
+    restart: unless-stopped
     # Ports mapping
     ports:
       - 8080:80
