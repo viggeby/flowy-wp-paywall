@@ -20,7 +20,8 @@ class Flowy {
         $this->options_page->setup();
         Shortcodes::register();
         UserData::setup();
-        $this->addFrontEndScripts();
+
+        add_action( 'wp_enqueue_scripts', [ $this, 'add_front_end_scripts' ] );
 
         add_action( 'init', function(){
             Auth::initCallbackListener();
@@ -37,10 +38,9 @@ class Flowy {
                 Flowy::logout();
             }
 
-            // Notify that the user us not logged in with Flowy and no need to hammer the API
+            // Set flag that we have checked with Idp if user is logged in
             if ( isset($_GET['flowy_paywall_notify_login_status']) ){
-                $is_logged_in = boolval( $_GET['flowy_paywall_notify_login_status'] );
-                Flowy::setThirdPartyLoginStatus( $is_logged_in );
+                Flowy::setThirdPartyLoginStatus( true );
             }
 
             // Listen for previous login with flag so we can set this across domains with request in case of multi-domain installations
@@ -59,19 +59,7 @@ class Flowy {
                 Flowy::clean_url();
                 exit;
             }
-            
-        
 
-            // If not admin, not logged in, has logged in before and we haven't checked with idp, try a soft login for sso
-            if ( !Flowy::is_wp_login_page() && !is_admin() && !Flowy::isLoggedIn() /*&& Flowy::getPreviousLoginCookie() !== NULL*/ && Flowy::getThirdPartyLoginStatus() === NULL ){
-                
-                // Do a soft redirect to allow facebook, google and other services to read meta without redirect from headers
-                add_action( 'wp_head', function(){
-                    $try_auth_url = Auth::get_try_authorize_url();
-                    echo "<script type='text/javascript'>window.location = '{$try_auth_url}';</script>\n";
-                });
-
-            }
 
             if ( !is_admin() ) {
                 // Check if IP address is on allow-list
@@ -102,21 +90,15 @@ class Flowy {
         return $GLOBALS['pagenow'] === 'wp-login.php';
     }
 
-    function addFrontEndScripts(){
+    function add_front_end_scripts(){
 
-        add_action( 'wp_head', function(){
-
-            $flowy_paywall = json_encode( [
-                "login_url"                     =>  Auth::getAuthorizeUrl(),
-                "login_status_is_unknown"       =>  Flowy::isLoggedIn() ?? false, // Obsolete
-                "is_logged_in"                  =>  Flowy::isLoggedIn() ?? false,
-                "previous_login"                =>  Flowy::getPreviousLoginCookie() ?? false,
-                "third_party_login_status"      =>  Flowy::getThirdPartyLoginStatus() ?? false
-            ] );
-
-            echo "<script type='text/javascript'>window.flowy_paywall = {$flowy_paywall};</script>\n";
-
-        });
+        wp_register_script( 'flowy-auth', plugin_dir_url( __FILE__ ) . 'js/flowy-auth.js', array(), '1.0.0', true );
+        wp_localize_script( 'flowy-auth', 'flowy_auth',
+		[
+            "login_url"                     =>  Auth::getAuthorizeUrl(),
+            "get_try_authorize_url"         =>  Auth::get_try_authorize_url(),
+        ]);
+        wp_enqueue_script( 'flowy-auth' );
     }
  
     static function getSetting($name){
@@ -248,7 +230,7 @@ class Flowy {
             return null;
         }
 
-        return $_COOKIE['flowy_paywall_previous_login'];  
+        return boolval( $_COOKIE['flowy_paywall_previous_login'] );  
     }
 
     static function setThirdPartyLoginStatus( $is_logged_in){
@@ -259,13 +241,18 @@ class Flowy {
         Flowy::setCrossDomainCookie( 'flowy_paywall_third_party_login', $is_logged_in,  time()+$expires );
     }
 
+    /**
+     * Check if we have tried to login with Idp (primarily used from javascript)
+     *
+     * @return void
+     */
     static function getThirdPartyLoginStatus(){
 
         if ( !isset($_COOKIE['flowy_paywall_third_party_login']) ){
             return null;
         }
 
-        return $_COOKIE['flowy_paywall_third_party_login'];
+        return boolval( $_COOKIE['flowy_paywall_third_party_login'] );
     }
 
 
@@ -283,6 +270,9 @@ class Flowy {
             // Unset cooies
             \setcookie( 'flowy_paywall', null, -1, '/' );
             \setcookie( 'flowy_paywall_previous_login', null, -1, '/' );
+            
+            unset( $_COOKIE['flowy_paywall'] );
+            unset( $_COOKIE['flowy_paywall_previous_login'] );
 
             // NOTE: Keep flowy_paywall_third_party_login so we know the user actually signed out on purpose
 
