@@ -32,11 +32,9 @@ class FlowyAuth {
 
     checkSSO = () => {
 
-        // Redirect if not logged in, we have been logged in before and we haven't checked status with IDP recently
-        if ( this.isLoggedIn() === false  && this.getPreviousLoginCookie() === true && this.getThirdPartyLoginStatus() === false ){
-            window.location = flowy_auth.get_try_authorize_url;
-        }
-
+        // Obsolete loginCheck (connectid.no/loginCheck) no longer used. Session is re-validated server-side
+        // via API (checkAccess) with refresh_token on 401; user must click login again if session is invalid.
+        // No redirect to get_try_authorize_url.
     }
 
 }

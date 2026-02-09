@@ -2,6 +2,12 @@
 
 class Flowy {
 
+    /** Session and token cache lifetime (30 days). Invalidated on API 401 or refresh failure. */
+    const SESSION_SECONDS = 30 * DAY_IN_SECONDS;
+
+    /** Throttle: re-validate with API at most once per 24 hours per user. */
+    const REVALIDATE_THROTTLE_SECONDS = 24 * HOUR_IN_SECONDS;
+
     var $options_page;
 
     static $instance;
@@ -60,6 +66,25 @@ class Flowy {
                 exit;
             }
 
+            if ( isset( $_GET['flowy_paywall_force_refresh'] ) ) {
+                Flowy::handleForceRefresh();
+            }
+
+            if ( isset( $_GET['flowy_paywall_simulate_401'] ) ) {
+                Flowy::handleSimulate401();
+            }
+
+            if ( isset( $_GET['flowy_paywall_simulate_expired_cookie'] ) ) {
+                Flowy::handleSimulateExpiredCookie();
+            }
+
+            if ( isset( $_GET['flowy_paywall_simulate_no_access'] ) ) {
+                Flowy::handleSimulateNoAccess();
+            }
+
+            if ( isset( $_GET['flowy_paywall_clear_simulate_no_access'] ) ) {
+                Flowy::handleClearSimulateNoAccess();
+            }
 
             if ( !is_admin() ) {
                 // Check if IP address is on allow-list
@@ -105,56 +130,128 @@ class Flowy {
         return get_option( "flowy_paywall_${name}" );
     }
 
-    function checkSubscriptionWithApi($auth){      
-        
+    function checkSubscriptionWithApi( $auth ){
 
-        if(empty($auth)){
-            error_log( 'Auth token returned from login is emtpy.' );
-            wp_die('Login failed for unkown reason. Please try again.');
+        if ( empty( $auth ) || empty( $auth->access_token ) ) {
+            error_log( 'Flowy Paywall: Auth token returned from login is empty.' );
+            wp_die( 'Login failed for unknown reason. Please try again.' );
         }
 
-        // Ask api for list of subscriptions
         $api_product = Flowy::getSetting( 'api_product' );
         $api_category_type = Flowy::getSetting( 'api_category_type' );
-        $api = new Api($auth->access_token);
+        $api = new Api( $auth->access_token );
+        $api_products = explode( ',', $api_product );
 
-
-        $api_products = explode(',', $api_product); 
-
-        // Check access on all products until one returns true.
         $is_subscriber = false;
-        foreach( $api_products as $api_product ){
-            $is_subscriber = $api->checkAccess( trim( $api_product ), $api_category_type );
-
-            // Break if the user has access to avoid unnessecary calls to the API
-            if( $is_subscriber )
-            {
+        foreach ( $api_products as $product ) {
+            $is_subscriber = $api->checkAccess( trim( $product ), $api_category_type );
+            if ( $is_subscriber ) {
                 break;
             }
-        }          
+        }
 
-        Flowy::doCookieAuth( $is_subscriber );
-        
+        if ( $api->getLastResponseCode() === 401 ) {
+            error_log( 'Flowy Paywall: API returned 401 on first login; token invalid.' );
+            wp_die( 'Login could not be completed. Please try again.' );
+        }
+
+        $uniqid = Flowy::doCookieAuth( $is_subscriber );
+        Flowy::storeTokens( $uniqid, $auth->access_token, isset( $auth->refresh_token ) ? $auth->refresh_token : null );
+        \set_transient( "flowy_paywall_lastcheck_{$uniqid}", time(), Flowy::SESSION_SECONDS );
+
+        $products = array_filter( array_map( 'trim', explode( ',', $api_product ) ) );
+        Flowy::storeDebugLog( $uniqid, [
+            'Första inloggning',
+            'Produkter: ' . implode( ', ', $products ),
+            'Kategori: ' . $api_category_type,
+            'HTTP: ' . $api->getLastResponseCode(),
+            'Access: ' . ( $is_subscriber ? 'ja' : 'nej' ),
+        ] );
     }
 
     
     /**
-     * Returns true if subscriber, false if not and null if unknown
+     * Returns true if subscriber, false if not, null if unknown/session invalid.
+     * Re-validates with API when throttle allows; on 401 tries refresh_token, then invalidates session if needed.
      */
     static function isSubscriber(){
 
-       $uniqid = Flowy::getCookie();
-
-       if ( empty($uniqid) ){
+        $uniqid = Flowy::getCookie();
+        if ( empty( $uniqid ) ) {
             return null;
-       }
-
-       $transient = get_transient( "flowy_paywall_{$uniqid}" );
-
-        if ( $transient  != false ){     
-            return $transient == "access" ? true : false;
         }
 
+        if ( \get_transient( "flowy_paywall_simulate_no_access_{$uniqid}" ) ) {
+            return false;
+        }
+
+        $cached = get_transient( "flowy_paywall_{$uniqid}" );
+        $access_token = Flowy::getStoredAccessToken( $uniqid );
+
+        if ( empty( $access_token ) ) {
+            return $cached !== false ? ( $cached === 'access' ) : null;
+        }
+
+        $lastcheck = get_transient( "flowy_paywall_lastcheck_{$uniqid}" );
+        if ( $lastcheck !== false && ( time() - (int) $lastcheck ) < self::REVALIDATE_THROTTLE_SECONDS ) {
+            return $cached === 'access';
+        }
+
+        $api_product = Flowy::getSetting( 'api_product' );
+        $api_category_type = Flowy::getSetting( 'api_category_type' );
+        $products = array_filter( array_map( 'trim', explode( ',', $api_product ) ) );
+        $first_product = $products ? $products[0] : '';
+        if ( $first_product === '' || $api_category_type === '' ) {
+            return $cached === 'access';
+        }
+
+        $api = new Api( $access_token );
+        $is_subscriber = false;
+        foreach ( $products as $product ) {
+            $is_subscriber = $api->checkAccess( $product, $api_category_type );
+            if ( $is_subscriber ) break;
+        }
+
+        $http = $api->getLastResponseCode();
+        $debug = [ 'Re-validering', 'Produkter: ' . implode( ', ', $products ), 'Kategori: ' . $api_category_type, 'HTTP: ' . $http, 'Access: ' . ( $is_subscriber ? 'ja' : 'nej' ) ];
+
+        if ( $http === 200 ) {
+            set_transient( "flowy_paywall_lastcheck_{$uniqid}", time(), self::SESSION_SECONDS );
+            set_transient( "flowy_paywall_{$uniqid}", $is_subscriber ? 'access' : 'noaccess', self::SESSION_SECONDS );
+            Flowy::storeDebugLog( $uniqid, $debug );
+            return $is_subscriber;
+        }
+
+        if ( $http !== 401 ) {
+            return $cached === 'access';
+        }
+
+        $refresh_token = Flowy::getStoredRefreshToken( $uniqid );
+        $new_auth = $refresh_token ? Auth::refreshAccessToken( $refresh_token ) : null;
+        if ( $new_auth && ! empty( $new_auth->access_token ) ) {
+            Flowy::storeTokens( $uniqid, $new_auth->access_token, isset( $new_auth->refresh_token ) ? $new_auth->refresh_token : null );
+            $api = new Api( $new_auth->access_token );
+            $is_subscriber = false;
+            foreach ( $products as $product ) {
+                $is_subscriber = $api->checkAccess( $product, $api_category_type );
+                if ( $is_subscriber ) break;
+            }
+            $http2 = $api->getLastResponseCode();
+            $debug[] = 'Refresh: ny token';
+            $debug[] = 'HTTP (efter refresh): ' . $http2;
+            $debug[] = 'Access: ' . ( $is_subscriber ? 'ja' : 'nej' );
+            if ( $http2 === 200 ) {
+                set_transient( "flowy_paywall_lastcheck_{$uniqid}", time(), self::SESSION_SECONDS );
+                set_transient( "flowy_paywall_{$uniqid}", $is_subscriber ? 'access' : 'noaccess', self::SESSION_SECONDS );
+                Flowy::storeDebugLog( $uniqid, $debug );
+                return $is_subscriber;
+            }
+        } else {
+            $debug[] = 'Refresh: misslyckad eller ingen refresh_token';
+        }
+
+        Flowy::storeDebugLog( $uniqid, $debug );
+        Flowy::invalidateSession( $uniqid );
         return null;
     }
 
@@ -179,27 +276,26 @@ class Flowy {
     }
 
 
+    /**
+     * Create session (cookie + transients). Returns uniqid for storing tokens.
+     * @param bool $is_subscriber
+     * @param string|null $uniqid
+     * @return string uniqid
+     */
     static function doCookieAuth( $is_subscriber, $uniqid = null){
 
-        // Create a server side transiet and match with cookie
         $uniqid = $uniqid ?? \uniqid();
-        $expiration = HOUR_IN_SECONDS*24;
+        $expiration = self::SESSION_SECONDS;
 
-        // Transient must be a string, non-existing will be returned as false by wp.
-        \setcookie( 'flowy_paywall', $uniqid, time()+$expiration, '/' );
+        \setcookie( 'flowy_paywall', $uniqid, time() + $expiration, '/' );
+        \set_transient( "flowy_paywall_{$uniqid}", $is_subscriber ? 'access' : 'noaccess', $expiration );
 
-        // Keep actual value in transient to avoid front-end tampering
-        \set_transient( "flowy_paywall_${uniqid}", $is_subscriber ? 'access' : 'noaccess', $expiration );
-
-        // Make cookie readable during this request to avoid reload to make it available
         $_COOKIE['flowy_paywall'] = $uniqid;
 
-        // Set cookie to show that we have checked login status with identity provider
         Flowy::setThirdPartyLoginStatus(true);
-
-        // Set flag for checking if we can assume user have an account
         Flowy::setPreviousLoginCookie(true);
 
+        return $uniqid;
     }
 
     
@@ -235,10 +331,8 @@ class Flowy {
 
     static function setThirdPartyLoginStatus( $is_logged_in){
 
-        // Create a server side transiet and match with cookie
-        $expires = boolval( $is_logged_in ) ?  HOUR_IN_SECONDS*24 : -1;
-
-        Flowy::setCrossDomainCookie( 'flowy_paywall_third_party_login', $is_logged_in,  time()+$expires );
+        $expires = boolval( $is_logged_in ) ? self::SESSION_SECONDS : -1;
+        Flowy::setCrossDomainCookie( 'flowy_paywall_third_party_login', $is_logged_in, time() + $expires );
     }
 
     /**
@@ -256,31 +350,185 @@ class Flowy {
     }
 
 
+    /**
+     * Store access_token and optional refresh_token for a session (30d TTL).
+     * @param string $uniqid
+     * @param string $access_token
+     * @param string|null $refresh_token
+     */
+    static function storeTokens( $uniqid, $access_token, $refresh_token = null ){
+
+        if ( empty( $uniqid ) || empty( $access_token ) ) {
+            return;
+        }
+        \set_transient( "flowy_paywall_token_{$uniqid}", $access_token, self::SESSION_SECONDS );
+        if ( $refresh_token !== null && $refresh_token !== '' ) {
+            \set_transient( "flowy_paywall_refresh_token_{$uniqid}", $refresh_token, self::SESSION_SECONDS );
+        }
+    }
+
+    /** @return string|null */
+    static function getStoredAccessToken( $uniqid ){
+        if ( empty( $uniqid ) ) return null;
+        $t = \get_transient( "flowy_paywall_token_{$uniqid}" );
+        return $t === false ? null : $t;
+    }
+
+    /** @return string|null */
+    static function getStoredRefreshToken( $uniqid ){
+        if ( empty( $uniqid ) ) return null;
+        $t = \get_transient( "flowy_paywall_refresh_token_{$uniqid}" );
+        return $t === false ? null : $t;
+    }
+
+    /** Debug log TTL (5 min) – only for status panel / felsökning */
+    const DEBUG_LOG_TTL = 300;
+
+    /**
+     * Store debug log lines for this session (product, API response, etc.). Overwrites previous.
+     * @param string $uniqid
+     * @param array $lines List of strings
+     */
+    static function storeDebugLog( $uniqid, array $lines ) {
+        if ( empty( $uniqid ) ) return;
+        $data = [ 'time' => time(), 'lines' => $lines ];
+        \set_transient( "flowy_paywall_debug_{$uniqid}", $data, self::DEBUG_LOG_TTL );
+    }
+
+    /**
+     * Get last stored debug log for this session (for status panel).
+     * @param string|null $uniqid
+     * @return array [ 'time' => int, 'lines' => string[] ] or empty
+     */
+    static function getDebugLog( $uniqid ) {
+        if ( empty( $uniqid ) ) return [ 'time' => 0, 'lines' => [] ];
+        $data = \get_transient( "flowy_paywall_debug_{$uniqid}" );
+        return \is_array( $data ) && isset( $data['lines'] ) ? $data : [ 'time' => 0, 'lines' => [] ];
+    }
+
+    /**
+     * Debug: force token refresh (anropar refresh_token utan att vänta på 401).
+     * Redirectar till aktuell URL utan query-param.
+     */
+    static function handleForceRefresh() {
+        $uniqid = self::getCookie();
+        if ( empty( $uniqid ) ) {
+            return;
+        }
+        $refresh_token = self::getStoredRefreshToken( $uniqid );
+        if ( empty( $refresh_token ) ) {
+            return;
+        }
+        $new_auth = Auth::refreshAccessToken( $refresh_token );
+        if ( $new_auth && ! empty( $new_auth->access_token ) ) {
+            self::storeTokens( $uniqid, $new_auth->access_token, isset( $new_auth->refresh_token ) ? $new_auth->refresh_token : null );
+            \delete_transient( "flowy_paywall_lastcheck_{$uniqid}" );
+            self::storeDebugLog( $uniqid, [ 'Debug: Forcerad token-förnyelse', 'Resultat: ny access_token sparad' ] );
+        } else {
+            self::storeDebugLog( $uniqid, [ 'Debug: Forcerad token-förnyelse', 'Resultat: refresh misslyckades' ] );
+        }
+        $url = remove_query_arg( 'flowy_paywall_force_refresh', Auth::getCurrentUrl() );
+        wp_redirect( $url );
+        exit;
+    }
+
+    /**
+     * Debug: simulerar 401 – rensar session direkt så du ser "Ej inloggad" (samma resultat som 401 utan refresh).
+     */
+    static function handleSimulate401() {
+        $uniqid = self::getCookie();
+        if ( ! empty( $uniqid ) ) {
+            self::storeDebugLog( $uniqid, [
+                'Debug: Simulera 401',
+                'Session rensad (som vid 401 utan lyckad refresh)',
+            ] );
+            self::invalidateSession( $uniqid );
+        }
+        $url = remove_query_arg( 'flowy_paywall_simulate_401', Auth::getCurrentUrl() );
+        $url = add_query_arg( 'flowy_paywall_simulated_401', '1', $url );
+        wp_redirect( $url );
+        exit;
+    }
+
+    /**
+     * Debug: simulerar utgången cookie – tar bort session-cookien så nästa request ser "Ej inloggad".
+     */
+    static function handleSimulateExpiredCookie() {
+        \setcookie( 'flowy_paywall', '', time() - 3600, '/' );
+        unset( $_COOKIE['flowy_paywall'] );
+        $url = remove_query_arg( 'flowy_paywall_simulate_expired_cookie', Auth::getCurrentUrl() );
+        $url = add_query_arg( 'flowy_paywall_simulated_expired_cookie', '1', $url );
+        wp_redirect( $url );
+        exit;
+    }
+
+    /**
+     * Debug: simulerar "inloggad men ingen prenumeration" – isSubscriber() returnerar false i 120 s.
+     */
+    static function handleSimulateNoAccess() {
+        $uniqid = self::getCookie();
+        if ( ! empty( $uniqid ) ) {
+            \set_transient( "flowy_paywall_simulate_no_access_{$uniqid}", 1, 120 );
+        }
+        $url = remove_query_arg( 'flowy_paywall_simulate_no_access', Auth::getCurrentUrl() );
+        wp_redirect( $url );
+        exit;
+    }
+
+    /**
+     * Debug: slutar simulera "ingen prenumeration".
+     */
+    static function handleClearSimulateNoAccess() {
+        $uniqid = self::getCookie();
+        if ( ! empty( $uniqid ) ) {
+            \delete_transient( "flowy_paywall_simulate_no_access_{$uniqid}" );
+        }
+        $url = remove_query_arg( 'flowy_paywall_clear_simulate_no_access', Auth::getCurrentUrl() );
+        wp_redirect( $url );
+        exit;
+    }
+
+    /**
+     * Invalidate local session (e.g. on API 401 or refresh failure). Does not redirect to ConnectID logout.
+     * @param string $uniqid Session uniqid from cookie
+     */
+    static function invalidateSession( $uniqid ){
+
+        if ( empty( $uniqid ) ) {
+            return;
+        }
+
+        \delete_transient( "flowy_paywall_{$uniqid}" );
+        \delete_transient( "flowy_paywall_token_{$uniqid}" );
+        \delete_transient( "flowy_paywall_refresh_token_{$uniqid}" );
+        \delete_transient( "flowy_paywall_lastcheck_{$uniqid}" );
+        \delete_transient( "flowy_paywall_debug_{$uniqid}" );
+
+        \setcookie( 'flowy_paywall', '', time() - 3600, '/' );
+        unset( $_COOKIE['flowy_paywall'] );
+    }
+
     static function logout(){
 
         $uniqid = Flowy::getCookie();
 
         if ( !empty($uniqid) ){
-             
-            // Remove transient
-            if( isset($_COOKIE['flowy_paywall']) ){
-                \delete_transient( $_COOKIE['flowy_paywall'] );
-            }
 
-            // Unset cooies
-            \setcookie( 'flowy_paywall', null, -1, '/' );
-            \setcookie( 'flowy_paywall_previous_login', null, -1, '/' );
-            
+            \delete_transient( "flowy_paywall_{$uniqid}" );
+            \delete_transient( "flowy_paywall_token_{$uniqid}" );
+            \delete_transient( "flowy_paywall_refresh_token_{$uniqid}" );
+            \delete_transient( "flowy_paywall_lastcheck_{$uniqid}" );
+
+            \setcookie( 'flowy_paywall', '', time() - 3600, '/' );
+            \setcookie( 'flowy_paywall_previous_login', '', time() - 3600, '/' );
+
             unset( $_COOKIE['flowy_paywall'] );
             unset( $_COOKIE['flowy_paywall_previous_login'] );
 
             // NOTE: Keep flowy_paywall_third_party_login so we know the user actually signed out on purpose
 
-            // Send logout request to external provider
-            Auth::logout();            
-
+            Auth::logout();
         }
-
     }
-    
+
 }

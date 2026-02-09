@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Flowy Paywall
  * Description: Add paywall functions from Flowy (https://www.flowy.se/)
- * Version: 1.1
+ * Version: 1.2
  * Author: Viggeby Data AB
  * Author URI: https://www.viggeby.com/
  * Requires at least: 5.2
@@ -11,7 +11,13 @@
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-require_once( 'Api.php' );
+// Prevent "unexpected output" during activation (e.g. from Xdebug or stray whitespace in required files).
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+ob_start();
+
+require_once __DIR__ . '/Api.php';
 require_once( 'Auth.php' );
 require_once( 'Flowy.php' );
 require_once( 'OptionsPage.php' );
@@ -21,6 +27,8 @@ require_once( 'IpCheck.php' );
 
 
 Flowy\Flowy::instance()->setup();
+
+ob_end_clean();
 
 /*
 Helper function for easy use

@@ -110,10 +110,10 @@ class Auth {
     /**
      * Redirect to sso endpoint, login locally if logged in but do not prompt user if not logged in
      */
-    static function try_authorize(){       
+    static function try_authorize(){
 
-        Auth::get_try_authorize_url();
-       \wp_redirect( $login_check_url );
+        $login_check_url = Auth::get_try_authorize_url();
+        wp_redirect( $login_check_url );
         exit;
     }
 
@@ -166,7 +166,50 @@ class Auth {
         
     }
 
-    
+    /**
+     * Exchange refresh_token for new access_token. Same endpoint as token exchange.
+     * @param string $refresh_token
+     * @return object|null { access_token, refresh_token? } or null on failure
+     */
+    static function refreshAccessToken( $refresh_token ){
+
+        if ( empty( $refresh_token ) ) {
+            return null;
+        }
+
+        $api_url = rtrim( Flowy::getSetting( 'login_url' ), '/' );
+        $url = $api_url . '/oauth/token';
+        $client_id = Flowy::getSetting( 'client_id' );
+        $client_secret = Flowy::getSetting( 'client_secret' );
+
+        $args = [
+            'method'  => 'POST',
+            'headers' => [
+                'Content-Type'  => 'application/x-www-form-urlencoded',
+                'Authorization' => 'Basic ' . base64_encode( $client_id . ':' . $client_secret ),
+            ],
+            'body'    => [
+                'grant_type'    => 'refresh_token',
+                'refresh_token' => $refresh_token,
+            ],
+            'timeout' => 15,
+        ];
+
+        $response = wp_remote_post( $url, $args );
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+
+        if ( $code !== 200 || $body === '' ) {
+            return null;
+        }
+
+        $data = json_decode( $body );
+        if ( empty( $data->access_token ) ) {
+            return null;
+        }
+
+        return $data;
+    }
 
 
 }

@@ -3,15 +3,15 @@ Contributors: jstensved
 Plugin Name: Flowy Paywall
 Tags: flowy
 Description: Add paywall functions from Flowy (https://www.flowy.se/)
-Version: 1.0
+Version: 1.2
 Author: Viggeby Data AB
 Author URI: https://www.viggeby.com/
 Requires at least: 5.2
 Requires PHP: 7.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-Stable tag: trunk
-Tested up to: 5.4
+Stable tag: 1.2
+Tested up to: 6.4
 
 
 This plugin adds paywall functionality to WordPress with login by Flowy (flowy.se) and a verification that the user have access to a subscription configured in the admin panel.
@@ -20,9 +20,9 @@ This plugin adds paywall functionality to WordPress with login by Flowy (flowy.s
 
 This plugin adds paywall functionality to WordPress with login by Flowy and a verification that the user have access to a subscription configured in the admin panel.
 
-The plugin does not, by design, interact with the WordPress authentication system but does instead set a cookie that is matched by a server-side transient. This transient have a maximum lifetime of 24 hours which will after expiration force the user to re-authenticate with Flowy.
+The plugin does not, by design, interact with the WordPress authentication system but does instead set a cookie that is matched by a server-side transient. Session and token cache have a lifetime of 30 days. The plugin re-validates with the ConnectID API (with throttling); on 401 it uses the refresh token to obtain a new access token. If refresh fails, the user must log in again.
 
-If the user is already signed-in with flowy, either with persistent cookie or with a recent sign-in, a front-end script will check if the user have access and renew the login token by a redirect if it is needed and can be done without interrupting the user.
+The previous "loginCheck" redirect (connectid.no) is no longer used; validation is done via the Check Access API. Existing users who were logged out daily due to the 24-hour limit or broken loginCheck will now stay logged in for up to 30 days or until the API indicates the token is invalid.
 
 == Screenshots ==
 
@@ -55,7 +55,17 @@ Do use the resulting token you might do something like this:
     }
 
 
-== Documentation ==
+== Changelog ==
+
+= 1.2 =
+* Session and token cache extended to 30 days (was 24 hours). Fixes "logged out every day" when loginCheck is deprecated.
+* Access token and refresh token are stored and used for re-validation; on API 401 the plugin tries refresh_token before invalidating the session.
+* Replaced dependency on connectid.no/loginCheck with real API validation (Check Access). Session is invalidated when the API returns 401 and refresh fails.
+* API calls now use wp_remote_post/wp_remote_get and expose HTTP status (401 handling).
+* New shortcode: [flowy_status_panel] for status and optional API debug log (for troubleshooting).
+* Bugfix: try_authorize() now uses the return value from get_try_authorize_url() (redirect was broken).
+* Bugfix: setcookie() no longer passes null (PHP 8.1+ compatibility); logout and UserData cookie clearing fixed.
+* Output buffering on plugin load to avoid "unexpected output" during activation (e.g. with Xdebug).
 
 = 1.4 = 
 

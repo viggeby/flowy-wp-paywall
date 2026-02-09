@@ -35,7 +35,7 @@ class UserData {
     static function onLogout(){
 
         // Remove cookies
-        \setcookie( 'flowy_paywall_user_products', null, -1, '/' );
+        \setcookie( 'flowy_paywall_user_products', '', time() - 3600, '/' );
 
     }
 

@@ -1,7 +1,3 @@
-# Version of the Compose file format
-# Version 3 is the most current and recommended one
-version: "3"
-
 # Top building block that defines
 # All containers used for this service
 services:
@@ -9,11 +5,8 @@ services:
   # Container 1
   # https://hub.docker.com/_/mysql
   db:
-    # Image name (optinally version)
-    # https://docs.docker.com/compose/compose-file/#image
-    image: mysql:5.7
-    # Define restart policy
-    # https://docs.docker.com/compose/compose-file/#restart
+    image: mariadb:10
+    platform: linux/amd64
     restart: unless-stopped
     # Volumes definition
     # Named volume, allows persisted data but without caring where locally it is stored
@@ -27,16 +20,21 @@ services:
       MYSQL_DATABASE: wordpress
       MYSQL_USER: wordpress
       MYSQL_PASSWORD: wordpress
-    # List of networks to join
+    healthcheck:
+      test: ["CMD", "mysql", "-uroot", "-ppassword", "-h", "localhost", "-e", "SELECT 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
     networks:
       - wp
 
   # Container 2
   # https://hub.docker.com/_/wordpress
   wordpress:
-    # List of dependencies
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     # Image name (optinally version)
     # https://docs.docker.com/compose/compose-file/#image
     # Feel free to add a version of WordPress
@@ -74,14 +72,10 @@ services:
   # https://hub.docker.com/r/phpmyadmin/phpmyadmin
   # This one is optional
   phpmyadmin:
-    # List of dependencies
     depends_on:
       - db
-    # Image name (optinally version)
-    # https://docs.docker.com/compose/compose-file/#image
     image: phpmyadmin/phpmyadmin
-    # Define restart policy
-    # https://docs.docker.com/compose/compose-file/#restart
+    platform: linux/amd64
     restart: unless-stopped
     # Ports mapping
     ports:
